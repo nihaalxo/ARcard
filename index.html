@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card (MindAR + Modules)</title>
+  <title>My AR Business Card (MindAR + Global THREE)</title>
+
+  <!-- 1) MindAR Image Tracking (bundles THREE internally) -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
+
+  <!-- 2) GLTFLoader (attaches to the global THREE that MindAR provided) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+
   <style>
     /* Make body zero-margin so AR view fills the screen */
     body {
@@ -21,30 +28,21 @@
   <!-- AR will render into this div -->
   <div id="ar-container"></div>
 
-  <!-- Main script: load Three.js, GLTFLoader, and MindAR as ES modules -->
-  <script type="module">
-    // 1) Import Three.js core (r147) and GLTFLoader
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.module.js';
-    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.147.0/examples/jsm/loaders/GLTFLoader.js';
-
-    // 2) Import MindAR for Three.js (bundled as an ES module)
-    import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js';
-
-    // Wait for the DOM to be ready
-    document.addEventListener('DOMContentLoaded', async () => {
-      // 3) Initialize MindAR, pointing at your target.mind
-      const mindARThree = new MindARThree({
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      // 1) Initialize MindAR (which internally creates THREE)
+      const mindARThree = new window.MINDAR.IMAGE.MindARThree({
         container: document.querySelector('#ar-container'),
         imageTargetSrc: 'assets/target.mind',
       });
 
-      // 4) Destructure the renderer, scene, and camera from MindARThree
+      // 2) Get the renderer, scene, and camera from MindARThree
       const { renderer, scene, camera } = mindARThree;
 
-      // 5) Create an anchor for the first (and only) image target (index 0)
+      // 3) Create an anchor for the first image target (index 0)
       const anchor = mindARThree.addAnchor(0);
 
-      // 6a) Debug Box (2 cm red cube) to confirm tracking
+      // 4a) Debug Box: a 2 cm red cube to verify tracking
       {
         const debugBoxGeo = new THREE.BoxGeometry(0.02, 0.02, 0.02);
         const debugBoxMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -53,17 +51,17 @@
         anchor.group.add(debugBox);
       }
 
-      // 6b) Virtual Card Plane using cardback.png (8.8 cm × 5.8 cm)
+      // 4b) Virtual Card Plane (8.8 cm × 5.8 cm) using cardback.png
       {
         const cardTexture = new THREE.TextureLoader().load('assets/cardback.png');
         const cardMaterial = new THREE.MeshBasicMaterial({ map: cardTexture });
-        const cardGeo = new THREE.PlaneGeometry(0.088, 0.058); // 0.088m × 0.058m
+        const cardGeo = new THREE.PlaneGeometry(0.088, 0.058);
         const cardPlane = new THREE.Mesh(cardGeo, cardMaterial);
         cardPlane.position.set(0, 0, 0);
         anchor.group.add(cardPlane);
       }
 
-      // 6c) Glow Overlay using emmisivepattern.png
+      // 4c) Glow Overlay (using emmisivepattern.png)
       {
         const glowTexture = new THREE.TextureLoader().load('assets/emmisivepattern.png');
         const glowMaterial = new THREE.MeshBasicMaterial({
@@ -91,7 +89,7 @@
         }, 100);
       }
 
-      // 6d) Lightning Video as a Video Texture
+      // 4d) Floating Lightning Video as a Video Texture
       {
         const video = document.createElement('video');
         video.src = 'assets/lightning.mp4';
@@ -112,11 +110,11 @@
         anchor.group.add(lightningPlane);
       }
 
-      // 6e) Load 3D Social Icons with GLTFLoader
+      // 4e) Load 3D Social Icons via GLTFLoader (which now sees global THREE)
       {
-        const gltfLoader = new GLTFLoader();
-        const iconScale = 0.02;         // 2 cm
-        const iconY = -0.03;            // 3 cm below center
+        const gltfLoader = new THREE.GLTFLoader();
+        const iconScale = 0.02;   // 2 cm
+        const iconY = -0.03;      // 3 cm below center
         const posX = [-0.04, -0.02, 0, 0.02]; // x positions for 4 icons
 
         // LinkedIn Icon
@@ -184,10 +182,10 @@
         });
       }
 
-      // 7) Start MindAR (requests camera access)
+      // 5) Start MindAR (requests camera access)
       await mindARThree.start();
 
-      // 8) Render loop
+      // 6) Render loop
       renderer.setAnimationLoop(() => {
         renderer.render(scene, camera);
       });
