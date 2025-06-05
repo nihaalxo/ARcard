@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My AR Business Card</title>
+  <!-- A-Frame Library -->
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <!-- AR.js for Marker-based AR -->
+  <script src="https://unpkg.com/aframe-ar@1.8.2/dist/aframe-ar.js"></script>
+  <!-- (Optional) Postprocessing for Bloom -->
+  <script src="https://unpkg.com/aframe-postprocessing/dist/aframe-postprocessing.min.js"></script>
+
+  <style>
+    /* Make body zero-margin so AR view fills the screen */
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+  <!--
+    A-Frame Scene Setup:
+    - embedded: so it doesn't push other page elements
+    - vr-mode-ui="enabled: false": hides the VR entry button
+    - renderer="antialias: true": better edges
+    - arjs="sourceType: webcam; trackingMethod: best": use camera & best tracking
+    - postprocessing="bloom: { … }": enables bloom if you want emissive glow
+  -->
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    renderer="colorManagement: true; antialias: true"
+    arjs="sourceType: webcam; trackingMethod: best"
+    postprocessing="bloom: { threshold: 0.1; strength: 1.2; radius: 0.4 }"
+  >
+    <!-- 1) Asset Management -->
+    <a-assets>
+      <!-- 1a) Card Diffuse (printed design you used for the .patt marker) -->
+      <img
+        id="cardTexture"
+        src="assets/cardFront.png"
+        crossorigin="anonymous"
+      />
+
+      <!-- 1b) Glow Mask PNG (transparent areas, only "white" where you want glow) -->
+      <img
+        id="glowMask"
+        src="assets/emissiveMask.png"
+        crossorigin="anonymous"
+      />
+
+      <!-- 1c) Lightning MP4, set to autoplay + loop (muted so mobile will play) -->
+      <video
+        id="lightningVideo"
+        src="assets/lightning.mp4"
+        loop
+        autoplay
+        muted
+        playsinline
+        webkit-playsinline
+        crossorigin="anonymous"
+      ></video>
+
+      <!-- 1d) 3D Models (GLB) -->
+      <!-- (A) The "flat card" model if you want a 3D plane: optional -->
+      <a-asset-item
+        id="cardModel"
+        src="assets/businesscardmodel.glb"
+      ></a-asset-item>
+
+      <!-- (B) Social / Link Icons -->
+      <a-asset-item
+        id="linkModel"
+        src="assets/link.glb"
+      ></a-asset-item>
+      <a-asset-item
+        id="linkedinModel"
+        src="assets/linkedinicon.glb"
+      ></a-asset-item>
+      <a-asset-item
+        id="phoneModel"
+        src="assets/phoneicon.glb"
+      ></a-asset-item>
+      <a-asset-item
+        id="portfolioModel"
+        src="assets/portfolioicon.glb"
+      ></a-asset-item>
+      <a-asset-item
+        id="emailModel"
+        src="assets/emailicon.glb"
+      ></a-asset-item>
+    </a-assets>
+
+    <!-- 2) AR Marker -->
+    <!--   type="pattern" → uses the .patt file we generated
+           url="assets/markers/card-pattern.patt" -->
+    <a-marker
+      type="pattern"
+      url="assets/markers/card-pattern.patt"
+      smooth="true"
+      smoothCount="12"
+      smoothTolerance="0.01"
+      smoothThreshold="5"
+    >
+      <!-- 3) Base Card Plane (Flat, unlit, shows the actual printed texture) -->
+      <!-- If you already have a 3D "businesscardmodel.glb" that is just a thin plane
+           with the card's texture baked in, you can swap this <a-plane> for:
+           <a-entity gltf-model="#cardModel" scale="0.1 0.1 0.1" rotation="-90 0 0"></a-entity>
+           But for simplicity, we'll just draw a flat A-Frame plane. -->
+      <a-plane
+        id="cardPlane"
+        src="#cardTexture"
+        width="0.10"
+        height="0.06"
+        rotation="-90 0 0"
+        material="shader: flat; side: double"
+      ></a-plane>
+
+      <!-- 4) Glow Overlay Plane (1 mm above the card, using emissive mask) -->
+      <a-plane
+        id="glowOverlay"
+        src="#glowMask"
+        width="0.10"
+        height="0.06"
+        position="0 0.001 0"
+        rotation="-90 0 0"
+        material="shader: flat;
+                  transparent: true;
+                  emissive: #00FFFF;
+                  emissiveIntensity: 1.0;
+                  blending: add;
+                  opacity: 0.8"
+      >
+        <!-- Optional: pulse the emissive glow -->
+        <a-animation
+          attribute="material.emissiveIntensity"
+          from="0.3"
+          to="1.2"
+          dur="1200"
+          dir="alternate"
+          repeat="indefinite"
+        ></a-animation>
+      </a-plane>
+
+      <!-- 5) Floating Lightning (MP4) as a Video Texture -->
+      <a-video
+        id="lightningPlane"
+        src="#lightningVideo"
+        width="0.12"
+        height="0.08"
+        position="0 0.08 0"
+        rotation="-90 0 0"
+        material="shader: flat;
+                  transparent: true;
+                  blending: add;
+                  opacity: 0.9"
+      ></a-video>
+
+      <!-- 6) 3D Social Icons (hovering under the card) -->
+      <!-- We'll load each icon individually, scale them way down (0.02 m), and position them in a row. -->
+      <a-entity id="socialIcons" position="0 0 0" rotation="0 180 0">
+        <!-- LinkedIn Icon -->
+        <a-entity
+          gltf-model="#linkedinModel"
+          scale="0.02 0.02 0.02"
+          position="-0.04 -0.04 0"
+          material="shader: flat; emissive: #00FFFF; emissiveIntensity: 1.0"
+        ></a-entity>
+
+        <!-- Phone Icon -->
+        <a-entity
+          gltf-model="#phoneModel"
+          scale="0.02 0.02 0.02"
+          position="-0.02 -0.04 0"
+          material="shader: flat; emissive: #00FFFF; emissiveIntensity: 1.0"
+        ></a-entity>
+
+        <!-- Link/Portfolio Icon -->
+        <a-entity
+          gltf-model="#linkModel"
+          scale="0.02 0.02 0.02"
+          position="0 -0.04 0"
+          material="shader: flat; emissive: #00FFFF; emissiveIntensity: 1.0"
+        ></a-entity>
+
+        <!-- Email Icon -->
+        <a-entity
+          gltf-model="#emailModel"
+          scale="0.02 0.02 0.02"
+          position="0.02 -0.04 0"
+          material="shader: flat; emissive: #00FFFF; emissiveIntensity: 1.0"
+        ></a-entity>
+      </a-entity>
+
+      <!-- 7) (Optional) Your 3D "card model" if you want to show a slightly tilted card -->
+      <!-- 
+      <a-entity
+        gltf-model="#cardModel"
+        scale="0.05 0.05 0.05"
+        position="0 0 0"
+        rotation="-90 0 0"
+      ></a-entity>
+      -->
+
+    </a-marker>
+
+    <!-- 8) AR Camera Entity -->
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    // Wait for the scene to load
+    document.addEventListener("DOMContentLoaded", () => {
+      // Helper function to open a URL
+      function linkClick(url) {
+        window.open(url, "_blank");
+      }
+
+      // When user taps on the LinkedIn icon, open your LinkedIn
+      const linkedInEl = document
+        .querySelector("#socialIcons")
+        .querySelector('[gltf-model="#linkedinModel"]');
+      linkedInEl.addEventListener("click", () => {
+        linkClick("https://www.linkedin.com/in/nihaal-nazeer-b6187117a/");
+      });
+
+      // Phone icon → dialer
+      const phoneEl = document
+        .querySelector("#socialIcons")
+        .querySelector('[gltf-model="#phoneModel"]');
+      phoneEl.addEventListener("click", () => {
+        window.location.href = "tel:+4407387323516";
+      });
+
+      // Portfolio icon → your website
+      const portfolioEl = document
+        .querySelector("#socialIcons")
+        .querySelector('[gltf-model="#linkModel"]');
+      portfolioEl.addEventListener("click", () => {
+        linkClick("https://nihaalnazeer.myportfolio.com");
+      });
+
+      // Email icon → mailto:
+      const emailEl = document
+        .querySelector("#socialIcons")
+        .querySelector('[gltf-model="#emailModel"]');
+      emailEl.addEventListener("click", () => {
+        window.location.href = "mailto:nihaalnazeerxo@gmail.com";
+      });
+    });
+  </script>
+</body>
+</html>
