@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card</title>
-  <!-- A-Frame Library -->
-  <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
-  <!-- AR.js for Marker-based AR -->
-  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.5/aframe/build/aframe-ar.js"></script>
-  <!-- (Optional) Postprocessing for Bloom -->
-  <!-- <script src="https://unpkg.com/aframe-postprocessing/dist/aframe-postprocessing.min.js"></script> -->
+  <title>My AR Business Card (MindAR)</title>
+  <!-- 1) Three.js Core -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+  <!-- 2) Three.js GLTFLoader (for loading your .glb icon models) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- 3) MindAR (image tracking) for Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <style>
     /* Make body zero-margin so AR view fills the screen */
@@ -16,242 +16,178 @@
       margin: 0;
       overflow: hidden;
     }
+    /* Fullscreen container for AR canvas */
+    #ar-container {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
   </style>
 </head>
-
 <body>
-  <!--
-    A-Frame Scene Setup:
-    - embedded: so it doesn't push other page elements
-    - vr-mode-ui="enabled: false": hides the VR entry button
-    - renderer="antialias: true": better edges
-    - arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: true": use camera & best tracking and enable debug UI
-    - postprocessing="bloom: { … }": enables bloom if you want emissive glow
-  -->
-  <a-scene
-    embedded
-    vr-mode-ui="enabled: false"
-    renderer="colorManagement: true; antialias: true"
-    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: true"
-    <!-- postprocessing="bloom: { threshold: 0.1; strength: 1.2; radius: 0.4 }" -->
-  >
-    <!-- 1) Asset Management -->
-    <a-assets>
-      <!-- 1a) Card Diffuse (printed design you used for the .patt marker) -->
-      <img
-        id="cardTexture"
-        src="assets/cardback.png"
-        crossorigin="anonymous"
-      />
-
-      <!-- 1b) Glow Mask PNG (transparent areas, only "white" where you want glow) -->
-      <img
-        id="glowMask"
-        src="assets/emmisivepattern.png"
-        crossorigin="anonymous"
-      />
-
-      <!-- 1c) Lightning MP4, set to autoplay + loop (muted so mobile will play) -->
-      <video
-        id="lightningVideo"
-        src="assets/lightning.mp4"
-        loop
-        autoplay
-        muted
-        playsinline
-        webkit-playsinline
-        crossorigin="anonymous"
-      ></video>
-
-      <!-- 1d) 3D Models (GLB) -->
-      <!-- (A) The "flat card" model if you want a 3D plane: optional -->
-      <a-asset-item
-        id="cardModel"
-        src="assets/3Dmodel.glb"
-      ></a-asset-item>
-
-      <!-- (B) Social / Link Icons -->
-      <a-asset-item
-        id="linkModel"
-        src="assets/link.glb"
-      ></a-asset-item>
-      <a-asset-item
-        id="linkedinModel"
-        src="assets/linkedinicon.glb"
-      ></a-asset-item>
-      <a-asset-item
-        id="phoneModel"
-        src="assets/phoneicon.glb"
-      ></a-asset-item>
-      <a-asset-item
-        id="portfolioModel"
-        src="assets/portfolioicon.glb"
-      ></a-asset-item>
-      <a-asset-item
-        id="emailModel"
-        src="assets/emailicon.glb"
-      ></a-asset-item>
-    </a-assets>
-
-    <!-- 2) AR Marker -->
-    <!--   type="pattern" → uses the .patt file we generated
-           url="assets/markers/card-pattern.patt" -->
-    <a-marker
-      type="pattern"
-      url="assets/markers/card-pattern.patt"
-      patternRatio="0.90"
-      smooth="true"
-      smoothCount="12"
-      smoothTolerance="0.01"
-      smoothThreshold="5"
-    >
-      <!-- Debug box: a 2 cm red cube, so you know the marker is detected -->
-      <a-box position="0 0.025 0" depth="0.02" height="0.02" width="0.02" color="#FF0000"></a-box>
-
-      <!-- 3) Base Card Plane (Flat, unlit, shows the actual printed texture) -->
-      <!-- If you already have a 3D "businesscardmodel.glb" that is just a thin plane
-           with the card's texture baked in, you can swap this <a-plane> for:
-           <a-entity gltf-model="#cardModel" scale="0.1 0.1 0.1" rotation="-90 0 0"></a-entity>
-           But for simplicity, we'll just draw a flat A-Frame plane. -->
-      <a-plane
-        id="cardPlane"
-        src="#cardTexture"
-        width="0.10"
-        height="0.06"
-        rotation="-90 0 0"
-        material="shader: flat; side: double"
-      ></a-plane>
-
-      <!-- 4) Glow Overlay Plane (1 mm above the card, using emissive mask) -->
-      <a-plane
-        id="glowOverlay"
-        src="#glowMask"
-        width="0.10"
-        height="0.06"
-        position="0 0.001 0"
-        rotation="-90 0 0"
-        material="shader: standard;
-                  transparent: true;
-                  emissive: #00FFFF;
-                  emissiveIntensity: 1.0;
-                  blending: add;
-                  opacity: 0.8"
-      >
-        <!-- Optional: pulse the emissive glow -->
-        <a-animation
-          attribute="material.emissiveIntensity"
-          from="0.3"
-          to="1.2"
-          dur="1200"
-          dir="alternate"
-          repeat="indefinite"
-        ></a-animation>
-      </a-plane>
-
-      <!-- 5) Floating Lightning (MP4) as a Video Texture -->
-      <a-video
-        id="lightningPlane"
-        src="#lightningVideo"
-        width="0.12"
-        height="0.08"
-        position="0 0.08 0"
-        rotation="-90 0 0"
-        material="shader: standard;
-                  transparent: true;
-                  blending: add;
-                  opacity: 0.9"
-      ></a-video>
-
-      <!-- 6) 3D Social Icons (hovering under the card) -->
-      <!-- We'll load each icon individually, scale them way down (0.02 m), and position them in a row. -->
-      <a-entity id="socialIcons" position="0 0 0" rotation="0 180 0">
-        <!-- LinkedIn Icon -->
-        <a-entity
-          gltf-model="#linkedinModel"
-          scale="0.02 0.02 0.02"
-          position="-0.04 -0.04 0"
-          material="shader: standard; emissive: #00FFFF; emissiveIntensity: 1.0"
-        ></a-entity>
-
-        <!-- Phone Icon -->
-        <a-entity
-          gltf-model="#phoneModel"
-          scale="0.02 0.02 0.02"
-          position="-0.02 -0.04 0"
-          material="shader: standard; emissive: #00FFFF; emissiveIntensity: 1.0"
-        ></a-entity>
-
-        <!-- Link/Portfolio Icon -->
-        <a-entity
-          gltf-model="#linkModel"
-          scale="0.02 0.02 0.02"
-          position="0 -0.04 0"
-          material="shader: standard; emissive: #00FFFF; emissiveIntensity: 1.0"
-        ></a-entity>
-
-        <!-- Email Icon -->
-        <a-entity
-          gltf-model="#emailModel"
-          scale="0.02 0.02 0.02"
-          position="0.02 -0.04 0"
-          material="shader: standard; emissive: #00FFFF; emissiveIntensity: 1.0"
-        ></a-entity>
-      </a-entity>
-
-      <!-- 7) (Optional) Your 3D "card model" if you want to show a slightly tilted card -->
-      <!-- 
-      <a-entity
-        gltf-model="#cardModel"
-        scale="0.05 0.05 0.05"
-        position="0 0 0"
-        rotation="-90 0 0"
-      ></a-entity>
-      -->
-
-    </a-marker>
-
-    <!-- 8) AR Camera Entity -->
-    <a-entity camera></a-entity>
-  </a-scene>
+  <!-- AR will render into this div -->
+  <div id="ar-container"></div>
 
   <script>
-    // Wait for the scene to load
-    document.addEventListener("DOMContentLoaded", () => {
-      // Helper function to open a URL
-      function linkClick(url) {
-        window.open(url, "_blank");
-      }
-
-      // When user taps on the LinkedIn icon, open your LinkedIn
-      const linkedInEl = document
-        .querySelector("#socialIcons")
-        .querySelector('[gltf-model="#linkedinModel"]');
-      linkedInEl.addEventListener("click", () => {
-        linkClick("https://www.linkedin.com/in/nihaal-nazeer-b6187117a/");
+    document.addEventListener("DOMContentLoaded", async () => {
+      // 1) Create the MindAR‐Three instance, pointing at your single "target.mind" file.
+      const mindARThree = new window.MINDAR.IMAGE.MindARThree({
+        container: document.querySelector("#ar-container"),
+        imageTargetSrc: "assets/target.mind", // your generated .mind file
       });
 
-      // Phone icon → dialer
-      const phoneEl = document
-        .querySelector("#socialIcons")
-        .querySelector('[gltf-model="#phoneModel"]');
-      phoneEl.addEventListener("click", () => {
-        window.location.href = "tel:+4407387323516";
+      // 2) Destructure to get renderer, scene, camera
+      const { renderer, scene, camera } = mindARThree;
+
+      // 3) Add an anchor for the first (and only) image target (index 0)
+      const anchor = mindARThree.addAnchor(0);
+
+      // 4) Inside that anchor.group, build your AR content:
+
+      // 4a) (Optional) Debug box—bright red cube (2 cm³) to confirm detection:
+      const debugBoxGeo = new THREE.BoxGeometry(0.02, 0.02, 0.02);
+      const debugBoxMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const debugBox = new THREE.Mesh(debugBoxGeo, debugBoxMat);
+      // Position it 1 cm above the card surface (half the cube height = 0.01)
+      debugBox.position.set(0, 0.01, 0);
+      anchor.group.add(debugBox);
+
+      // 4b) Virtual Card Plane (shows your cardback.png in AR).
+      //     The printed card is vertical, so we make a vertical plane 8.8 cm × 5.8 cm.
+      const cardTexture = new THREE.TextureLoader().load("assets/cardback.png");
+      const cardMaterial = new THREE.MeshBasicMaterial({ map: cardTexture });
+      const cardGeo = new THREE.PlaneGeometry(0.088, 0.058); // 8.8 cm × 5.8 cm
+      const cardPlane = new THREE.Mesh(cardGeo, cardMaterial);
+      // Center it at the marker (no rotation needed—MindAR places it flush to the camera)
+      cardPlane.position.set(0, 0, 0);
+      anchor.group.add(cardPlane);
+
+      // 4c) Glow Overlay Plane (emissive overlay using your PNG mask).
+      //     We place it 1 mm in front of the card (toward the camera) to avoid z-fighting.
+      const glowTexture = new THREE.TextureLoader().load("assets/emmisivepattern.png");
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        map: glowTexture,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        color: 0x00ffff,
+        opacity: 0.8,
+      });
+      const glowPlane = new THREE.Mesh(cardGeo, glowMaterial);
+      glowPlane.position.set(0, 0, 0.001); // 1 mm in front
+      anchor.group.add(glowPlane);
+
+      // (Optional) Simple pulsing animation for the glow's opacity:
+      let glowUp = true;
+      setInterval(() => {
+        if (glowUp) {
+          glowMaterial.opacity = Math.min(glowMaterial.opacity + 0.1, 1.0);
+          if (glowMaterial.opacity >= 1.0) glowUp = false;
+        } else {
+          glowMaterial.opacity = Math.max(glowMaterial.opacity - 0.1, 0.3);
+          if (glowMaterial.opacity <= 0.3) glowUp = true;
+        }
+      }, 120);
+
+      // 4d) Floating Lightning Video
+      const video = document.createElement("video");
+      video.src = "assets/lightning.mp4";
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      await video.play(); // wait until it starts
+      const videoTexture = new THREE.VideoTexture(video);
+      const lightningMat = new THREE.MeshBasicMaterial({
+        map: videoTexture,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        opacity: 0.9,
+      });
+      // Create a plane 12 cm × 8 cm
+      const lightningGeo = new THREE.PlaneGeometry(0.12, 0.08);
+      const lightningPlane = new THREE.Mesh(lightningGeo, lightningMat);
+      // Position it 8 cm in front of the card (toward camera)
+      lightningPlane.position.set(0, 0, 0.08);
+      anchor.group.add(lightningPlane);
+
+      // 4e) 3D Social Icons (GLB models) – we load each with GLTFLoader
+      const gltfLoader = new THREE.GLTFLoader();
+      const iconScale = 0.02; // 2 cm tall
+      // Positions along the card face, just below center. 
+      // We place them on the card itself (z = 0), y = –3 cm (slightly below center).
+      const iconY = -0.03; // 3 cm down from center
+      const positionsX = [ -0.04, -0.02, 0, 0.02 ]; // 4 icons spaced 2 cm apart
+
+      // (1) LinkedIn Icon
+      gltfLoader.load("assets/linkedinicon.glb", (gltf) => {
+        const mesh = gltf.scene;
+        mesh.scale.set(iconScale, iconScale, iconScale);
+        mesh.position.set(positionsX[0], iconY, 0);
+        // Apply a simple emissive material override so it glows cyan
+        mesh.traverse((child) => {
+          if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({
+              emissive: 0x00ffff,
+              emissiveIntensity: 1.0,
+            });
+          }
+        });
+        anchor.group.add(mesh);
       });
 
-      // Portfolio icon → your website
-      const portfolioEl = document
-        .querySelector("#socialIcons")
-        .querySelector('[gltf-model="#linkModel"]');
-      portfolioEl.addEventListener("click", () => {
-        linkClick("https://nihaalnazeer.myportfolio.com");
+      // (2) Phone Icon
+      gltfLoader.load("assets/phoneicon.glb", (gltf) => {
+        const mesh = gltf.scene;
+        mesh.scale.set(iconScale, iconScale, iconScale);
+        mesh.position.set(positionsX[1], iconY, 0);
+        mesh.traverse((child) => {
+          if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({
+              emissive: 0x00ffff,
+              emissiveIntensity: 1.0,
+            });
+          }
+        });
+        anchor.group.add(mesh);
       });
 
-      // Email icon → mailto:
-      const emailEl = document
-        .querySelector("#socialIcons")
-        .querySelector('[gltf-model="#emailModel"]');
-      emailEl.addEventListener("click", () => {
-        window.location.href = "mailto:nihaalnazeerxo@gmail.com";
+      // (3) Portfolio/Link Icon
+      gltfLoader.load("assets/link.glb", (gltf) => {
+        const mesh = gltf.scene;
+        mesh.scale.set(iconScale, iconScale, iconScale);
+        mesh.position.set(positionsX[2], iconY, 0);
+        mesh.traverse((child) => {
+          if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({
+              emissive: 0x00ffff,
+              emissiveIntensity: 1.0,
+            });
+          }
+        });
+        anchor.group.add(mesh);
+      });
+
+      // (4) Email Icon
+      gltfLoader.load("assets/emailicon.glb", (gltf) => {
+        const mesh = gltf.scene;
+        mesh.scale.set(iconScale, iconScale, iconScale);
+        mesh.position.set(positionsX[3], iconY, 0);
+        mesh.traverse((child) => {
+          if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({
+              emissive: 0x00ffff,
+              emissiveIntensity: 1.0,
+            });
+          }
+        });
+        anchor.group.add(mesh);
+      });
+
+      // 5) Start the MindAR engine (requests camera permission)
+      await mindARThree.start();
+
+      // 6) Render loop
+      renderer.setAnimationLoop(() => {
+        renderer.render(scene, camera);
       });
     });
   </script>
