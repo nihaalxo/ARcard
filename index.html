@@ -25,14 +25,14 @@
     - embedded: so it doesn't push other page elements
     - vr-mode-ui="enabled: false": hides the VR entry button
     - renderer="antialias: true": better edges
-    - arjs="sourceType: webcam; trackingMethod: best": use camera & best tracking
+    - arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: true": use camera & best tracking and enable debug UI
     - postprocessing="bloom: { … }": enables bloom if you want emissive glow
   -->
   <a-scene
     embedded
     vr-mode-ui="enabled: false"
     renderer="colorManagement: true; antialias: true"
-    arjs="sourceType: webcam; trackingMethod: best"
+    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: true"
     <!-- postprocessing="bloom: { threshold: 0.1; strength: 1.2; radius: 0.4 }" -->
   >
     <!-- 1) Asset Management -->
@@ -104,6 +104,9 @@
       smoothTolerance="0.01"
       smoothThreshold="5"
     >
+      <!-- Debug box: a 2 cm red cube, so you know the marker is detected -->
+      <a-box position="0 0.025 0" depth="0.02" height="0.02" width="0.02" color="#FF0000"></a-box>
+
       <!-- 3) Base Card Plane (Flat, unlit, shows the actual printed texture) -->
       <!-- If you already have a 3D "businesscardmodel.glb" that is just a thin plane
            with the card's texture baked in, you can swap this <a-plane> for:
