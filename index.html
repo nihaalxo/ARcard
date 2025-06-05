@@ -2,14 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card (MindAR)</title>
-
-  <!-- 1) MindAR Image Tracking, which already includes Three.js internally -->
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
-
-  <!-- 2) GLTFLoader for loading your .glb models (must match the Three.js version inside MindAR) -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
-
+  <title>My AR Business Card (MindAR + Modules)</title>
   <style>
     /* Make body zero-margin so AR view fills the screen */
     body {
@@ -28,158 +21,173 @@
   <!-- AR will render into this div -->
   <div id="ar-container"></div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      // 1) Initialize MindAR with your single .mind file (target.mind)
-      const mindARThree = new window.MINDAR.IMAGE.MindARThree({
-        container: document.querySelector("#ar-container"),
-        imageTargetSrc: "assets/target.mind",
+  <!-- Main script: load Three.js, GLTFLoader, and MindAR as ES modules -->
+  <script type="module">
+    // 1) Import Three.js core (r147) and GLTFLoader
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.module.js';
+    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.147.0/examples/jsm/loaders/GLTFLoader.js';
+
+    // 2) Import MindAR for Three.js (bundled as an ES module)
+    import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js';
+
+    // Wait for the DOM to be ready
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 3) Initialize MindAR, pointing at your target.mind
+      const mindARThree = new MindARThree({
+        container: document.querySelector('#ar-container'),
+        imageTargetSrc: 'assets/target.mind',
       });
 
-      // 2) Grab references to the renderer, scene, and camera that MindAR creates
+      // 4) Destructure the renderer, scene, and camera from MindARThree
       const { renderer, scene, camera } = mindARThree;
 
-      // 3) Create an anchor for the first (and only) image target (index 0)
+      // 5) Create an anchor for the first (and only) image target (index 0)
       const anchor = mindARThree.addAnchor(0);
 
-      // 4a) Debug Box: a 2 cm red cube, so we can confirm tracking works
-      const debugBoxGeo = new THREE.BoxGeometry(0.02, 0.02, 0.02);
-      const debugBoxMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      const debugBox = new THREE.Mesh(debugBoxGeo, debugBoxMat);
-      // Position the cube 1 cm above the card surface
-      debugBox.position.set(0, 0.01, 0);
-      anchor.group.add(debugBox);
+      // 6a) Debug Box (2 cm red cube) to confirm tracking
+      {
+        const debugBoxGeo = new THREE.BoxGeometry(0.02, 0.02, 0.02);
+        const debugBoxMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const debugBox = new THREE.Mesh(debugBoxGeo, debugBoxMat);
+        debugBox.position.set(0, 0.01, 0);
+        anchor.group.add(debugBox);
+      }
 
-      // 4b) Virtual Card Plane: maps your cardback.png (8.8 cm × 5.8 cm)
-      const cardTexture = new THREE.TextureLoader().load("assets/cardback.png");
-      const cardMaterial = new THREE.MeshBasicMaterial({ map: cardTexture });
-      const cardGeo = new THREE.PlaneGeometry(0.088, 0.058); // 8.8 cm × 5.8 cm
-      const cardPlane = new THREE.Mesh(cardGeo, cardMaterial);
-      // Place it flush with the detected image (no rotation needed)
-      cardPlane.position.set(0, 0, 0);
-      anchor.group.add(cardPlane);
+      // 6b) Virtual Card Plane using cardback.png (8.8 cm × 5.8 cm)
+      {
+        const cardTexture = new THREE.TextureLoader().load('assets/cardback.png');
+        const cardMaterial = new THREE.MeshBasicMaterial({ map: cardTexture });
+        const cardGeo = new THREE.PlaneGeometry(0.088, 0.058); // 0.088m × 0.058m
+        const cardPlane = new THREE.Mesh(cardGeo, cardMaterial);
+        cardPlane.position.set(0, 0, 0);
+        anchor.group.add(cardPlane);
+      }
 
-      // 4c) Glow Overlay: uses your transparent PNG (emmisivepattern.png)
-      const glowTexture = new THREE.TextureLoader().load("assets/emmisivepattern.png");
-      const glowMaterial = new THREE.MeshBasicMaterial({
-        map: glowTexture,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        color: 0x00ffff,
-        opacity: 0.8,
-      });
-      const glowPlane = new THREE.Mesh(cardGeo, glowMaterial);
-      // Lift it 1 mm above the card to avoid z-fighting
-      glowPlane.position.set(0, 0, 0.001);
-      anchor.group.add(glowPlane);
-
-      // Optional pulsing animation for the glow plane's opacity:
-      let increasing = true;
-      setInterval(() => {
-        if (increasing) {
-          glowMaterial.opacity = Math.min(glowMaterial.opacity + 0.05, 1.0);
-          if (glowMaterial.opacity >= 1.0) increasing = false;
-        } else {
-          glowMaterial.opacity = Math.max(glowMaterial.opacity - 0.05, 0.3);
-          if (glowMaterial.opacity <= 0.3) increasing = true;
-        }
-      }, 100);
-
-      // 4d) Floating Lightning Video
-      const video = document.createElement("video");
-      video.src = "assets/lightning.mp4";
-      video.loop = true;
-      video.muted = true;
-      video.playsInline = true;
-      await video.play(); // wait for video to start
-      const videoTexture = new THREE.VideoTexture(video);
-      const lightningMat = new THREE.MeshBasicMaterial({
-        map: videoTexture,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        opacity: 0.9,
-      });
-      // Create a plane 12 cm × 8 cm
-      const lightningGeo = new THREE.PlaneGeometry(0.12, 0.08);
-      const lightningPlane = new THREE.Mesh(lightningGeo, lightningMat);
-      // Position it 8 cm in front of the card (toward the camera)
-      lightningPlane.position.set(0, 0, 0.08);
-      anchor.group.add(lightningPlane);
-
-      // 4e) 3D Social Icons (using GLTFLoader)
-      const gltfLoader = new THREE.GLTFLoader();
-      const iconScale = 0.02;            // 2 cm tall
-      const iconY = -0.03;               // 3 cm below center of card
-      const positionsX = [-0.04, -0.02, 0, 0.02]; 
-
-      // LinkedIn Icon
-      gltfLoader.load("assets/linkedinicon.glb", (gltf) => {
-        const mesh = gltf.scene;
-        mesh.scale.set(iconScale, iconScale, iconScale);
-        mesh.position.set(positionsX[0], iconY, 0);
-        mesh.traverse((child) => {
-          if (child.isMesh) {
-            child.material = new THREE.MeshStandardMaterial({
-              emissive: 0x00ffff,
-              emissiveIntensity: 1.0,
-            });
-          }
+      // 6c) Glow Overlay using emmisivepattern.png
+      {
+        const glowTexture = new THREE.TextureLoader().load('assets/emmisivepattern.png');
+        const glowMaterial = new THREE.MeshBasicMaterial({
+          map: glowTexture,
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          color: 0x00ffff,
+          opacity: 0.8,
         });
-        anchor.group.add(mesh);
-      });
+        const cardGeo = new THREE.PlaneGeometry(0.088, 0.058);
+        const glowPlane = new THREE.Mesh(cardGeo, glowMaterial);
+        glowPlane.position.set(0, 0, 0.001); // 1 mm above card
+        anchor.group.add(glowPlane);
 
-      // Phone Icon
-      gltfLoader.load("assets/phoneicon.glb", (gltf) => {
-        const mesh = gltf.scene;
-        mesh.scale.set(iconScale, iconScale, iconScale);
-        mesh.position.set(positionsX[1], iconY, 0);
-        mesh.traverse((child) => {
-          if (child.isMesh) {
-            child.material = new THREE.MeshStandardMaterial({
-              emissive: 0x00ffff,
-              emissiveIntensity: 1.0,
-            });
+        // Optional pulsing for glow
+        let up = true;
+        setInterval(() => {
+          if (up) {
+            glowMaterial.opacity = Math.min(glowMaterial.opacity + 0.05, 1.0);
+            if (glowMaterial.opacity >= 1.0) up = false;
+          } else {
+            glowMaterial.opacity = Math.max(glowMaterial.opacity - 0.05, 0.3);
+            if (glowMaterial.opacity <= 0.3) up = true;
           }
-        });
-        anchor.group.add(mesh);
-      });
+        }, 100);
+      }
 
-      // Portfolio/Link Icon
-      gltfLoader.load("assets/link.glb", (gltf) => {
-        const mesh = gltf.scene;
-        mesh.scale.set(iconScale, iconScale, iconScale);
-        mesh.position.set(positionsX[2], iconY, 0);
-        mesh.traverse((child) => {
-          if (child.isMesh) {
-            child.material = new THREE.MeshStandardMaterial({
-              emissive: 0x00ffff,
-              emissiveIntensity: 1.0,
-            });
-          }
+      // 6d) Lightning Video as a Video Texture
+      {
+        const video = document.createElement('video');
+        video.src = 'assets/lightning.mp4';
+        video.loop = true;
+        video.muted = true;
+        video.playsInline = true;
+        await video.play();
+        const videoTexture = new THREE.VideoTexture(video);
+        const lightningMat = new THREE.MeshBasicMaterial({
+          map: videoTexture,
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          opacity: 0.9,
         });
-        anchor.group.add(mesh);
-      });
+        const lightningGeo = new THREE.PlaneGeometry(0.12, 0.08); // 12 cm × 8 cm
+        const lightningPlane = new THREE.Mesh(lightningGeo, lightningMat);
+        lightningPlane.position.set(0, 0, 0.08); // 8 cm in front
+        anchor.group.add(lightningPlane);
+      }
 
-      // Email Icon
-      gltfLoader.load("assets/emailicon.glb", (gltf) => {
-        const mesh = gltf.scene;
-        mesh.scale.set(iconScale, iconScale, iconScale);
-        mesh.position.set(positionsX[3], iconY, 0);
-        mesh.traverse((child) => {
-          if (child.isMesh) {
-            child.material = new THREE.MeshStandardMaterial({
-              emissive: 0x00ffff,
-              emissiveIntensity: 1.0,
-            });
-          }
+      // 6e) Load 3D Social Icons with GLTFLoader
+      {
+        const gltfLoader = new GLTFLoader();
+        const iconScale = 0.02;         // 2 cm
+        const iconY = -0.03;            // 3 cm below center
+        const posX = [-0.04, -0.02, 0, 0.02]; // x positions for 4 icons
+
+        // LinkedIn Icon
+        gltfLoader.load('assets/linkedinicon.glb', (gltf) => {
+          const mesh = gltf.scene;
+          mesh.scale.set(iconScale, iconScale, iconScale);
+          mesh.position.set(posX[0], iconY, 0);
+          mesh.traverse((child) => {
+            if (child.isMesh) {
+              child.material = new THREE.MeshStandardMaterial({
+                emissive: 0x00ffff,
+                emissiveIntensity: 1.0,
+              });
+            }
+          });
+          anchor.group.add(mesh);
         });
-        anchor.group.add(mesh);
-      });
 
-      // 5) Start MindAR (asks for camera permission)
+        // Phone Icon
+        gltfLoader.load('assets/phoneicon.glb', (gltf) => {
+          const mesh = gltf.scene;
+          mesh.scale.set(iconScale, iconScale, iconScale);
+          mesh.position.set(posX[1], iconY, 0);
+          mesh.traverse((child) => {
+            if (child.isMesh) {
+              child.material = new THREE.MeshStandardMaterial({
+                emissive: 0x00ffff,
+                emissiveIntensity: 1.0,
+              });
+            }
+          });
+          anchor.group.add(mesh);
+        });
+
+        // Portfolio/Link Icon
+        gltfLoader.load('assets/link.glb', (gltf) => {
+          const mesh = gltf.scene;
+          mesh.scale.set(iconScale, iconScale, iconScale);
+          mesh.position.set(posX[2], iconY, 0);
+          mesh.traverse((child) => {
+            if (child.isMesh) {
+              child.material = new THREE.MeshStandardMaterial({
+                emissive: 0x00ffff,
+                emissiveIntensity: 1.0,
+              });
+            }
+          });
+          anchor.group.add(mesh);
+        });
+
+        // Email Icon
+        gltfLoader.load('assets/emailicon.glb', (gltf) => {
+          const mesh = gltf.scene;
+          mesh.scale.set(iconScale, iconScale, iconScale);
+          mesh.position.set(posX[3], iconY, 0);
+          mesh.traverse((child) => {
+            if (child.isMesh) {
+              child.material = new THREE.MeshStandardMaterial({
+                emissive: 0x00ffff,
+                emissiveIntensity: 1.0,
+              });
+            }
+          });
+          anchor.group.add(mesh);
+        });
+      }
+
+      // 7) Start MindAR (requests camera access)
       await mindARThree.start();
 
-      // 6) Render loop
+      // 8) Render loop
       renderer.setAnimationLoop(() => {
         renderer.render(scene, camera);
       });
