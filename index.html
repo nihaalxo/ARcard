@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <title>My AR Business Card (MindAR)</title>
-  <!-- 1) Three.js Core -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-  <!-- 2) Three.js GLTFLoader (for loading your .glb icon models) -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
-  <!-- 3) MindAR (image tracking) for Three.js -->
+
+  <!-- 1) MindAR Image Tracking, which already includes Three.js internally -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
+
+  <!-- 2) GLTFLoader for loading your .glb models (must match the Three.js version inside MindAR) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <style>
     /* Make body zero-margin so AR view fills the screen */
@@ -30,40 +30,36 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
-      // 1) Create the MindAR‐Three instance, pointing at your single "target.mind" file.
+      // 1) Initialize MindAR with your single .mind file (target.mind)
       const mindARThree = new window.MINDAR.IMAGE.MindARThree({
         container: document.querySelector("#ar-container"),
-        imageTargetSrc: "assets/target.mind", // your generated .mind file
+        imageTargetSrc: "assets/target.mind",
       });
 
-      // 2) Destructure to get renderer, scene, camera
+      // 2) Grab references to the renderer, scene, and camera that MindAR creates
       const { renderer, scene, camera } = mindARThree;
 
-      // 3) Add an anchor for the first (and only) image target (index 0)
+      // 3) Create an anchor for the first (and only) image target (index 0)
       const anchor = mindARThree.addAnchor(0);
 
-      // 4) Inside that anchor.group, build your AR content:
-
-      // 4a) (Optional) Debug box—bright red cube (2 cm³) to confirm detection:
+      // 4a) Debug Box: a 2 cm red cube, so we can confirm tracking works
       const debugBoxGeo = new THREE.BoxGeometry(0.02, 0.02, 0.02);
       const debugBoxMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
       const debugBox = new THREE.Mesh(debugBoxGeo, debugBoxMat);
-      // Position it 1 cm above the card surface (half the cube height = 0.01)
+      // Position the cube 1 cm above the card surface
       debugBox.position.set(0, 0.01, 0);
       anchor.group.add(debugBox);
 
-      // 4b) Virtual Card Plane (shows your cardback.png in AR).
-      //     The printed card is vertical, so we make a vertical plane 8.8 cm × 5.8 cm.
+      // 4b) Virtual Card Plane: maps your cardback.png (8.8 cm × 5.8 cm)
       const cardTexture = new THREE.TextureLoader().load("assets/cardback.png");
       const cardMaterial = new THREE.MeshBasicMaterial({ map: cardTexture });
       const cardGeo = new THREE.PlaneGeometry(0.088, 0.058); // 8.8 cm × 5.8 cm
       const cardPlane = new THREE.Mesh(cardGeo, cardMaterial);
-      // Center it at the marker (no rotation needed—MindAR places it flush to the camera)
+      // Place it flush with the detected image (no rotation needed)
       cardPlane.position.set(0, 0, 0);
       anchor.group.add(cardPlane);
 
-      // 4c) Glow Overlay Plane (emissive overlay using your PNG mask).
-      //     We place it 1 mm in front of the card (toward the camera) to avoid z-fighting.
+      // 4c) Glow Overlay: uses your transparent PNG (emmisivepattern.png)
       const glowTexture = new THREE.TextureLoader().load("assets/emmisivepattern.png");
       const glowMaterial = new THREE.MeshBasicMaterial({
         map: glowTexture,
@@ -73,20 +69,21 @@
         opacity: 0.8,
       });
       const glowPlane = new THREE.Mesh(cardGeo, glowMaterial);
-      glowPlane.position.set(0, 0, 0.001); // 1 mm in front
+      // Lift it 1 mm above the card to avoid z-fighting
+      glowPlane.position.set(0, 0, 0.001);
       anchor.group.add(glowPlane);
 
-      // (Optional) Simple pulsing animation for the glow's opacity:
-      let glowUp = true;
+      // Optional pulsing animation for the glow plane's opacity:
+      let increasing = true;
       setInterval(() => {
-        if (glowUp) {
-          glowMaterial.opacity = Math.min(glowMaterial.opacity + 0.1, 1.0);
-          if (glowMaterial.opacity >= 1.0) glowUp = false;
+        if (increasing) {
+          glowMaterial.opacity = Math.min(glowMaterial.opacity + 0.05, 1.0);
+          if (glowMaterial.opacity >= 1.0) increasing = false;
         } else {
-          glowMaterial.opacity = Math.max(glowMaterial.opacity - 0.1, 0.3);
-          if (glowMaterial.opacity <= 0.3) glowUp = true;
+          glowMaterial.opacity = Math.max(glowMaterial.opacity - 0.05, 0.3);
+          if (glowMaterial.opacity <= 0.3) increasing = true;
         }
-      }, 120);
+      }, 100);
 
       // 4d) Floating Lightning Video
       const video = document.createElement("video");
@@ -94,7 +91,7 @@
       video.loop = true;
       video.muted = true;
       video.playsInline = true;
-      await video.play(); // wait until it starts
+      await video.play(); // wait for video to start
       const videoTexture = new THREE.VideoTexture(video);
       const lightningMat = new THREE.MeshBasicMaterial({
         map: videoTexture,
@@ -105,24 +102,21 @@
       // Create a plane 12 cm × 8 cm
       const lightningGeo = new THREE.PlaneGeometry(0.12, 0.08);
       const lightningPlane = new THREE.Mesh(lightningGeo, lightningMat);
-      // Position it 8 cm in front of the card (toward camera)
+      // Position it 8 cm in front of the card (toward the camera)
       lightningPlane.position.set(0, 0, 0.08);
       anchor.group.add(lightningPlane);
 
-      // 4e) 3D Social Icons (GLB models) – we load each with GLTFLoader
+      // 4e) 3D Social Icons (using GLTFLoader)
       const gltfLoader = new THREE.GLTFLoader();
-      const iconScale = 0.02; // 2 cm tall
-      // Positions along the card face, just below center. 
-      // We place them on the card itself (z = 0), y = –3 cm (slightly below center).
-      const iconY = -0.03; // 3 cm down from center
-      const positionsX = [ -0.04, -0.02, 0, 0.02 ]; // 4 icons spaced 2 cm apart
+      const iconScale = 0.02;            // 2 cm tall
+      const iconY = -0.03;               // 3 cm below center of card
+      const positionsX = [-0.04, -0.02, 0, 0.02]; 
 
-      // (1) LinkedIn Icon
+      // LinkedIn Icon
       gltfLoader.load("assets/linkedinicon.glb", (gltf) => {
         const mesh = gltf.scene;
         mesh.scale.set(iconScale, iconScale, iconScale);
         mesh.position.set(positionsX[0], iconY, 0);
-        // Apply a simple emissive material override so it glows cyan
         mesh.traverse((child) => {
           if (child.isMesh) {
             child.material = new THREE.MeshStandardMaterial({
@@ -134,7 +128,7 @@
         anchor.group.add(mesh);
       });
 
-      // (2) Phone Icon
+      // Phone Icon
       gltfLoader.load("assets/phoneicon.glb", (gltf) => {
         const mesh = gltf.scene;
         mesh.scale.set(iconScale, iconScale, iconScale);
@@ -150,7 +144,7 @@
         anchor.group.add(mesh);
       });
 
-      // (3) Portfolio/Link Icon
+      // Portfolio/Link Icon
       gltfLoader.load("assets/link.glb", (gltf) => {
         const mesh = gltf.scene;
         mesh.scale.set(iconScale, iconScale, iconScale);
@@ -166,7 +160,7 @@
         anchor.group.add(mesh);
       });
 
-      // (4) Email Icon
+      // Email Icon
       gltfLoader.load("assets/emailicon.glb", (gltf) => {
         const mesh = gltf.scene;
         mesh.scale.set(iconScale, iconScale, iconScale);
@@ -182,7 +176,7 @@
         anchor.group.add(mesh);
       });
 
-      // 5) Start the MindAR engine (requests camera permission)
+      // 5) Start MindAR (asks for camera permission)
       await mindARThree.start();
 
       // 6) Render loop
