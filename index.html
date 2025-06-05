@@ -6,9 +6,9 @@
   <!-- A-Frame Library -->
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <!-- AR.js for Marker-based AR -->
-  <script src="https://unpkg.com/aframe-ar@1.8.2/dist/aframe-ar.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.1.1/aframe-ar.min.js"></script>
   <!-- (Optional) Postprocessing for Bloom -->
-  <script src="https://unpkg.com/aframe-postprocessing/dist/aframe-postprocessing.min.js"></script>
+  <!-- <script src="https://unpkg.com/aframe-postprocessing/dist/aframe-postprocessing.min.js"></script> -->
 
   <style>
     /* Make body zero-margin so AR view fills the screen */
@@ -33,7 +33,7 @@
     vr-mode-ui="enabled: false"
     renderer="colorManagement: true; antialias: true"
     arjs="sourceType: webcam; trackingMethod: best"
-    postprocessing="bloom: { threshold: 0.1; strength: 1.2; radius: 0.4 }"
+    <!-- postprocessing="bloom: { threshold: 0.1; strength: 1.2; radius: 0.4 }" -->
   >
     <!-- 1) Asset Management -->
     <a-assets>
