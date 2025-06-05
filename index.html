@@ -4,11 +4,14 @@
   <meta charset="UTF-8" />
   <title>My AR Business Card (MindAR + Global THREE)</title>
 
-  <!-- 1) MindAR Image Tracking (bundles THREE internally) -->
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
+  <!-- 1) Load Three.js (global THREE) BEFORE anything else -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 
-  <!-- 2) GLTFLoader (attaches to the global THREE that MindAR provided) -->
+  <!-- 2) Load GLTFLoader, which attaches to that same global THREE -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <!-- 3) Finally load MindAR, which will use global THREE for rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <style>
     /* Make body zero-margin so AR view fills the screen */
@@ -30,19 +33,19 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
-      // 1) Initialize MindAR (which internally creates THREE)
+      // 1) Initialize MindAR, which expects THREE to already be defined globally
       const mindARThree = new window.MINDAR.IMAGE.MindARThree({
         container: document.querySelector('#ar-container'),
         imageTargetSrc: 'assets/target.mind',
       });
 
-      // 2) Get the renderer, scene, and camera from MindARThree
+      // 2) Destructure the renderer, scene, and camera from MindARThree
       const { renderer, scene, camera } = mindARThree;
 
-      // 3) Create an anchor for the first image target (index 0)
+      // 3) Create an anchor for the first (and only) image target (index 0)
       const anchor = mindARThree.addAnchor(0);
 
-      // 4a) Debug Box: a 2 cm red cube to verify tracking
+      // 4a) Debug Box: a 2 cm red cube to confirm tracking
       {
         const debugBoxGeo = new THREE.BoxGeometry(0.02, 0.02, 0.02);
         const debugBoxMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -51,7 +54,7 @@
         anchor.group.add(debugBox);
       }
 
-      // 4b) Virtual Card Plane (8.8 cm × 5.8 cm) using cardback.png
+      // 4b) Virtual Card Plane (8.8 cm × 5.8 cm) showing cardback.png
       {
         const cardTexture = new THREE.TextureLoader().load('assets/cardback.png');
         const cardMaterial = new THREE.MeshBasicMaterial({ map: cardTexture });
@@ -61,7 +64,7 @@
         anchor.group.add(cardPlane);
       }
 
-      // 4c) Glow Overlay (using emmisivepattern.png)
+      // 4c) Glow Overlay Plane (using emmisivepattern.png)
       {
         const glowTexture = new THREE.TextureLoader().load('assets/emmisivepattern.png');
         const glowMaterial = new THREE.MeshBasicMaterial({
@@ -76,7 +79,7 @@
         glowPlane.position.set(0, 0, 0.001); // 1 mm above card
         anchor.group.add(glowPlane);
 
-        // Optional pulsing for glow
+        // Optional pulsing for glow opacity
         let up = true;
         setInterval(() => {
           if (up) {
@@ -89,7 +92,7 @@
         }, 100);
       }
 
-      // 4d) Floating Lightning Video as a Video Texture
+      // 4d) Floating Lightning Video as a VideoTexture
       {
         const video = document.createElement('video');
         video.src = 'assets/lightning.mp4';
@@ -115,9 +118,9 @@
         const gltfLoader = new THREE.GLTFLoader();
         const iconScale = 0.02;   // 2 cm
         const iconY = -0.03;      // 3 cm below center
-        const posX = [-0.04, -0.02, 0, 0.02]; // x positions for 4 icons
+        const posX = [-0.04, -0.02, 0, 0.02]; // x positions for four icons
 
-        // LinkedIn Icon
+        // (1) LinkedIn Icon
         gltfLoader.load('assets/linkedinicon.glb', (gltf) => {
           const mesh = gltf.scene;
           mesh.scale.set(iconScale, iconScale, iconScale);
@@ -133,7 +136,7 @@
           anchor.group.add(mesh);
         });
 
-        // Phone Icon
+        // (2) Phone Icon
         gltfLoader.load('assets/phoneicon.glb', (gltf) => {
           const mesh = gltf.scene;
           mesh.scale.set(iconScale, iconScale, iconScale);
@@ -149,7 +152,7 @@
           anchor.group.add(mesh);
         });
 
-        // Portfolio/Link Icon
+        // (3) Portfolio/Link Icon
         gltfLoader.load('assets/link.glb', (gltf) => {
           const mesh = gltf.scene;
           mesh.scale.set(iconScale, iconScale, iconScale);
@@ -165,7 +168,7 @@
           anchor.group.add(mesh);
         });
 
-        // Email Icon
+        // (4) Email Icon
         gltfLoader.load('assets/emailicon.glb', (gltf) => {
           const mesh = gltf.scene;
           mesh.scale.set(iconScale, iconScale, iconScale);
