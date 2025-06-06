@@ -82,7 +82,7 @@
       gltfLoader.load('assets/link.glb', (gltf) => {
         const linkIcon = gltf.scene;
         linkIcon.scale.set(0.154, 0.154, 0.154); // 0.54 / 3.517
-        linkIcon.position.set(0, 0.663, 0); // (X, Y=0.663, Z=0)
+        linkIcon.position.set(0, 0.44, 0); // (X, Y=0.44, Z=0)
         linkIcon.rotation.set(0, -Math.PI/2, Math.PI + Math.PI/2); // (rotX, rotZ, rotY) with +270deg Z
         anchor.group.add(linkIcon);
       });
@@ -93,10 +93,10 @@
       // Blender: pos (X, Y, Z), rot (0,0,0)
       // Three.js: pos (X, Z, Y), rot (Math.PI/2,0,0)
       const iconData = [
-        { file: 'assets/emailicon.glb',      pos: [-0.569, -0.44, 0.028], scale: 0.159 },
-        { file: 'assets/phoneicon.glb',      pos: [-0.191, -0.44, 0.028], scale: 0.159 },
-        { file: 'assets/portfolioicon.glb',  pos: [ 0.195, -0.44, 0.028], scale: 0.159 },
-        { file: 'assets/linkedinicon.glb',   pos: [ 0.569, -0.44, 0.028], scale: 0.159 },
+        { file: 'assets/emailicon.glb',      pos: [-0.569, -0.44, 0.028], scale: 0.0795 },
+        { file: 'assets/phoneicon.glb',      pos: [-0.191, -0.44, 0.028], scale: 0.0795 },
+        { file: 'assets/portfolioicon.glb',  pos: [ 0.195, -0.44, 0.028], scale: 0.0795 },
+        { file: 'assets/linkedinicon.glb',   pos: [ 0.569, -0.44, 0.028], scale: 0.0795 },
       ];
       for (let i = 0; i < iconData.length; i++) {
         gltfLoader.load(iconData[i].file, (gltf) => {
