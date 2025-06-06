@@ -41,6 +41,10 @@
   <!-- MindAR will render its WebGL + video inside this div -->
   <div id="ar-container"></div>
 
+  <!-- Eruda: a lightweight in-page console -->
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>eruda.init();</script>
+
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
       //
@@ -48,57 +52,46 @@
       //
       const mindARThree = new window.MINDAR.IMAGE.MindARThree({
         container: document.querySelector('#ar-container'),
-        imageTargetSrc: 'assets/markers/targets.mind', // your single .mind file
+        imageTargetSrc: 'assets/markers/targets.mind',
       });
-
-      // Grab renderer, scene, camera
       const { renderer, scene, camera } = mindARThree;
-      renderer.setClearColor(0x000000, 0); // transparent background for AR video
+      renderer.setClearColor(0x000000, 0);
 
-      // 2) Create an anchor for the first target (index 0)
+      // 2) Create anchor for target index 0
       const anchor = mindARThree.addAnchor(0);
 
-      // 3) Add ambient light
+      // 3) Ambient light
       scene.add(new THREE.AmbientLight(0xffffff, 1.2));
 
-      // 4) Set up EXR environment map
+      // 4) EXR environment map
       const pmremGenerator = new THREE.PMREMGenerator(renderer);
-      const exrLoader = new THREE.EXRLoader();
-      exrLoader.load('assets/forest.exr', (texture) => {
+      new THREE.EXRLoader().load('assets/forest.exr', (texture) => {
         const envMap = pmremGenerator.fromEquirectangular(texture).texture;
         scene.environment = envMap;
       });
 
-      //
-      // 5) Instantiate GLTFLoader once (so we can reuse it everywhere)
-      //
+      // 5) Single GLTFLoader instance
       const gltfLoader = new THREE.GLTFLoader();
 
-      //
-      // 6) CHARACTER MODEL (Blender: 0,0,0.07 loc, 2.42 scale, 90 X rot)
-      //
+      // 6) Load character model
       gltfLoader.load('assets/3Dmodel.glb', (gltf) => {
         const model = gltf.scene;
-        model.scale.set(0.57, 0.57, 0.57); // updated scale
-        model.position.set(0, 0, 0.02); // 0,0,0.07 / 3.517
-        model.rotation.set(Math.PI/2, 0, 0); // 90 X
+        model.scale.set(0.57, 0.57, 0.57);
+        model.position.set(0, 0, 0.02);
+        model.rotation.set(Math.PI/2, 0, 0);
         anchor.group.add(model);
       });
 
-      //
-      // 7) LINK BANNER (Blender: 0,2.33,0.37 loc, 0.54 scale, -90 Z rot, +270 Z)
-      //
-      // Blender: pos (0, 2.33, 0.37), rot (0, 0, -90deg)
-      // Three.js: pos (0, 0.37/3.517, 2.33/3.517), rot (0, -Math.PI/2, Math.PI + Math.PI/2)
+      // 7) Load link banner
       gltfLoader.load('assets/link.glb', (gltf) => {
         const linkIcon = gltf.scene;
-        linkIcon.scale.set(0.154, 0.154, 0.154); // 0.54 / 3.517
-        linkIcon.position.set(0, 0.44, 0); // (X, Y=0.44, Z=0)
-        linkIcon.rotation.set(0, -Math.PI/2, Math.PI + Math.PI/2); // (rotX, rotZ, rotY) with +270deg Z
+        linkIcon.scale.set(0.154, 0.154, 0.154);
+        linkIcon.position.set(0, 0.44, 0);
+        linkIcon.rotation.set(0, -Math.PI/2, Math.PI + Math.PI/2);
         anchor.group.add(linkIcon);
       });
 
-      // Store references to all icon meshes and their links
+      // 8) Social icons setup
       const iconMeshes = [];
       const iconMeshToIndex = new Map();
       const iconLinks = [
@@ -108,101 +101,30 @@
         'https://www.linkedin.com/in/nihaal-nazeer-b6187117a/'
       ];
 
-      // Helper to collect all meshes from a loaded GLB
-      function getAllMeshes(object) {
+      function getAllMeshes(root) {
         const meshes = [];
-        object.traverse(child => {
+        root.traverse(child => {
           if (child.isMesh) meshes.push(child);
         });
         return meshes;
       }
 
-      // 8) SOCIAL ICONS (Blender positions/scales, 0,0,0 rot + 90deg X)
       const iconData = [
-        { file: 'assets/emailicon.glb',      pos: [-0.450, -0.44, 0.028], scale: 0.1 },
-        { file: 'assets/phoneicon.glb',      pos: [-0.150, -0.44, 0.028], scale: 0.1 },
-        { file: 'assets/portfolioicon.glb',  pos: [ 0.150, -0.44, 0.028], scale: 0.1 },
-        { file: 'assets/linkedinicon.glb',   pos: [ 0.450, -0.44, 0.028], scale: 0.1 },
+        { file: 'assets/emailicon.glb',     pos: [-0.450, -0.44, 0.028], scale: 0.1 },
+        { file: 'assets/phoneicon.glb',     pos: [-0.150, -0.44, 0.028], scale: 0.1 },
+        { file: 'assets/portfolioicon.glb', pos: [ 0.150, -0.44, 0.028], scale: 0.1 },
+        { file: 'assets/linkedinicon.glb',  pos: [ 0.450, -0.44, 0.028], scale: 0.1 },
       ];
-
-      // —————— RAYCAST SETUP ——————
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
-      const arContainer = document.querySelector('#ar-container');
-
-      function handlePointerDown(event) {
-        console.log("▶️ handlePointerDown fired:", event.type, event.clientX, event.clientY);
-        event.preventDefault();
-
-        // Get the canvas‐area bounding box:
-        const rect = renderer.domElement.getBoundingClientRect();
-        const x = event.clientX;
-        const y = event.clientY;
-        mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
-
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(iconMeshes, true);
-        console.log("   ↳ intersects.length =", intersects.length);
-
-        if (intersects.length > 0) {
-          const mesh = intersects[0].object;
-          const i = iconMeshToIndex.get(mesh);
-          if (i !== undefined) {
-            console.log("   ↳ Opening link:", iconLinks[i]);
-            window.open(iconLinks[i], "_blank");
-          }
-        }
-      }
-      arContainer.addEventListener("pointerdown", handlePointerDown);
-
-      // Ensure renderer and camera are synced on resize
-      window.addEventListener('resize', () => {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-      });
-
-      // 7.5) LIGHTNING VIDEO PLANE
-      {
-        const video = document.createElement('video');
-        video.src = 'assets/lightning.mp4';
-        video.loop = true;
-        video.muted = true;
-        video.playsInline = true;
-        await video.play();
-        const videoTexture = new THREE.VideoTexture(video);
-        const lightningMat = new THREE.MeshBasicMaterial({
-          map: videoTexture,
-          transparent: true,
-          opacity: 0.9,
-        });
-        const lightningGeo = new THREE.PlaneGeometry(0.48 * 3, 0.27 * 3); // 3x bigger, 16:9 aspect ratio
-        const lightningPlane = new THREE.Mesh(lightningGeo, lightningMat);
-        lightningPlane.position.set(0, 0.44, 0.5);
-        lightningPlane.rotation.x = Math.PI / 2;
-        anchor.group.add(lightningPlane);
-      }
-
-      //
-      // 9) Start MindAR (requests camera access)
-      //
-      await mindARThree.start();
-
-      //
-      // 10) Standard Three.js render loop (AR video background, no postprocessing)
-      //
-      renderer.setAnimationLoop(() => {
-        renderer.render(scene, camera);
-      });
-
-      // After all icons are loaded, log the iconMeshes length
       let loadedIconCount = 0;
       for (let i = 0; i < iconData.length; i++) {
         gltfLoader.load(iconData[i].file, (gltf) => {
           const meshRoot = gltf.scene;
           meshRoot.scale.set(iconData[i].scale, iconData[i].scale, iconData[i].scale);
-          meshRoot.position.set(iconData[i].pos[0], iconData[i].pos[1], iconData[i].pos[2]);
+          meshRoot.position.set(
+            iconData[i].pos[0],
+            iconData[i].pos[1],
+            iconData[i].pos[2]
+          );
           meshRoot.rotation.set(Math.PI/2, 0, 0);
           anchor.group.add(meshRoot);
 
@@ -218,6 +140,90 @@
           }
         });
       }
+
+      // 7.5) Lightning video plane
+      {
+        const video = document.createElement('video');
+        video.src = 'assets/lightning.mp4';
+        video.loop = true;
+        video.muted = true;
+        video.playsInline = true;
+        await video.play();
+        const videoTexture = new THREE.VideoTexture(video);
+        const lightningMat = new THREE.MeshBasicMaterial({
+          map: videoTexture,
+          transparent: true,
+          opacity: 0.9,
+        });
+        const lightningGeo = new THREE.PlaneGeometry(0.48 * 3, 0.27 * 3);
+        const lightningPlane = new THREE.Mesh(lightningGeo, lightningMat);
+        lightningPlane.position.set(0, 0.44, 0.5);
+        lightningPlane.rotation.x = Math.PI / 2;
+        anchor.group.add(lightningPlane);
+      }
+
+      // ——————— Raycasting & input handling ———————
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      function openLinkInNewTab(url) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+
+      function handlePointerOrTouch(event) {
+        console.log("▶️ handlePointerOrTouch fired:", event.type, event.clientX, event.clientY);
+        event.preventDefault();
+
+        let x, y;
+        if (event.type === "touchstart") {
+          x = event.touches[0].clientX;
+          y = event.touches[0].clientY;
+        } else {
+          x = event.clientX;
+          y = event.clientY;
+        }
+
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(iconMeshes, true);
+        console.log("   ↳ intersects.length =", intersects.length);
+
+        if (intersects.length > 0) {
+          const mesh = intersects[0].object;
+          const i = iconMeshToIndex.get(mesh);
+          if (i !== undefined) {
+            console.log("   ↳ Opening link:", iconLinks[i]);
+            openLinkInNewTab(iconLinks[i]);
+          }
+        }
+      }
+
+      // Attach to #ar-container
+      const arContainer = document.querySelector("#ar-container");
+      arContainer.addEventListener("pointerdown", handlePointerOrTouch);
+      arContainer.addEventListener("touchstart", handlePointerOrTouch);
+
+      // Resize camera/renderer
+      window.addEventListener("resize", () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+      });
+
+      // 9) Start MindAR and render loop
+      await mindARThree.start();
+      renderer.setAnimationLoop(() => {
+        renderer.render(scene, camera);
+      });
     });
   </script>
 </body>
