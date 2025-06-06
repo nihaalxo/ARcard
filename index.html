@@ -12,12 +12,12 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <style>
-    /* Make body zero-margin so AR view fills the screen */
+    /* Full‐window AR display */
     body {
       margin: 0;
       overflow: hidden;
     }
-    /* Fullscreen container for AR canvas */
+    /* Container for MindAR's canvas */
     #ar-container {
       position: fixed;
       top: 0; left: 0;
@@ -26,71 +26,92 @@
   </style>
 </head>
 <body>
-  <!-- AR will render into this div -->
+  <!-- MindAR will render its WebGL + video inside this div -->
   <div id="ar-container"></div>
 
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
-      // 1) Initialize MindAR
+      //
+      // 1) Initialize MindAR (expects THREE to already be loaded)
+      //
       const mindARThree = new window.MINDAR.IMAGE.MindARThree({
         container: document.querySelector('#ar-container'),
-        imageTargetSrc: 'assets/markers/targets.mind',
+        imageTargetSrc: 'assets/markers/targets.mind', // your single .mind file
       });
+
+      // Grab renderer, scene, camera
       const { renderer, scene, camera } = mindARThree;
+
+      // 2) Create an anchor for the first target (index 0)
       const anchor = mindARThree.addAnchor(0);
 
-      // 2) CARD PLANE (8.8 cm × 5.8 cm)
+      //
+      // 3) Add the PHYSICAL card plane (your printed card) as a virtual plane underneath all AR content.
+      //    This is 8.8 cm × 5.8 cm → 0.088 m × 0.058 m.
+      //
       {
-        const cardTex = new THREE.TextureLoader().load('assets/cardback.png');
-        const cardMat = new THREE.MeshBasicMaterial({ map: cardTex });
+        const cardTexture = new THREE.TextureLoader().load('assets/cardback.png');
+        const cardMat = new THREE.MeshBasicMaterial({ map: cardTexture });
         const cardGeo = new THREE.PlaneGeometry(0.088, 0.058);
         const cardPlane = new THREE.Mesh(cardGeo, cardMat);
-        cardPlane.position.set(0, 0, 0);
+        cardPlane.position.set(0, 0, 0);      // flush to the tracked image
         anchor.group.add(cardPlane);
       }
 
-      // 3) CHARACTER + BACKGROUND (3Dmodel.glb)
+      //
+      // 4) Load your character + background GLB (3Dmodel.glb).
+      //    Scale & position so that it stands on top of the card.
+      //
       {
-        const loader = new THREE.GLTFLoader();
-        loader.load('assets/3Dmodel.glb', (gltf) => {
+        const gltfLoader = new THREE.GLTFLoader();
+        gltfLoader.load('assets/3Dmodel.glb', (gltf) => {
           const model = gltf.scene;
-          model.scale.set(0.05, 0.05, 0.05);      // ~5% size, tweak as needed
-          model.position.set(0, 0.02, 0.02);      // 2 cm up, 2 cm forward
+          // Adjust these values to taste: 
+          //    - scale controls the character's real‐world height relative to the card 
+          //    - position.y lifts it up so "feet" land on the card surface
+          //    - position.z pushes it forward/up off the card surface into camera view
+          model.scale.set(0.05, 0.05, 0.05);   // ~5% of original size (tweak as needed)
+          model.position.set(0, 0.02, 0.02);   // 2 cm above card surface, 2 cm toward camera
+          // If your GLB has its own material settings (emissive glow, etc.), you can tweak here.
           anchor.group.add(model);
         });
       }
 
-      // 4) LIGHTNING VIDEO (20 cm × 12 cm), behind the character
+      //
+      // 5) Floating Lightning Video—make it BIGGER and behind the character.
+      //    We'll use a slightly larger plane (0.20 m × 0.12 m) and push it "into" the card.
+      //
       {
         const video = document.createElement('video');
         video.src = 'assets/lightning.mp4';
         video.loop = true;
-        video.muted = true;
+        video.muted = true; 
         video.playsInline = true;
-        await video.play();
-        const vidTex = new THREE.VideoTexture(video);
-        const lightMat = new THREE.MeshBasicMaterial({
-          map: vidTex,
+        await video.play();  // wait for the video to actually start
+        const videoTex = new THREE.VideoTexture(video);
+
+        const lightningMat = new THREE.MeshBasicMaterial({
+          map: videoTex,
           transparent: true,
           blending: THREE.AdditiveBlending,
           opacity: 0.9,
         });
-        const lightGeo = new THREE.PlaneGeometry(0.20, 0.12);
-        const lightningPlane = new THREE.Mesh(lightGeo, lightMat);
-        // Same orientation as the card (vertical) but flipped to face the camera
-        lightningPlane.rotation.y = Math.PI;
-        // Position it 2 cm up (so it sits "behind" the character) 
-        // and 1 cm behind the card surface (negative Z)
-        lightningPlane.position.set(0, 0.02, -0.01);
-        anchor.group.add(lightningPlane);
+        // Larger than card (20 cm × 12 cm → 0.20 m × 0.12 m)
+        const lightningGeo = new THREE.PlaneGeometry(0.20, 0.12);
+        const lightningMesh = new THREE.Mesh(lightningGeo, lightningMat);
+        // Push it slightly "behind" the card so character is in front of it:
+        lightningMesh.position.set(0, 0.02, -0.01);
+        // Rotate it so it faces the camera (the card is vertical by default)
+        lightningMesh.rotation.y = Math.PI;  
+        anchor.group.add(lightningMesh);
 
         //
-        // 5) LINK ICON (behind the character & below lightning plane)
+        // 6) LINK ICON (behind the character & below lightning plane)
         //
         // Load a second instance of the "link" GLB here, 
         // but rotate it exactly like the lightning plane (so it faces the camera vertically).
         // Then push it slightly downwards and behind the character.
-        loader.load('assets/link.glb', (gltf) => {
+        gltfLoader.load('assets/link.glb', (gltf) => {
           const linkIcon = gltf.scene;
           linkIcon.scale.set(0.015, 0.015, 0.015);  // ~1.5 cm tall
           // Place it 2 cm below center of the card, and 1 cm behind the card surface
@@ -110,56 +131,58 @@
         });
       }
 
-      // 6) FOUR SOCIAL ICONS ON CARD (excluding "link" which is repositioned above)
+      //
+      // 7) Social Icons: shrink & position them along the front edge of the card.
+      //
       {
-        const loader = new THREE.GLTFLoader();
-        const iconScale = 0.015;   // 1.5 cm tall
-        const iconY = -0.02;       // 2 cm below center, so flush on card surface
-        const posX = [-0.04, -0.02, /* link is removed from here */, 0.02];
+        const gltfLoader = new THREE.GLTFLoader();
+        const iconScale = 0.015;     // 1.5 cm tall each
+        const iconY = -0.02;         // 2 cm below card center (on the card surface)
+        // spacing: 4 icons equally spaced over ~+/- 4 cm
+        const posX = [-0.04, -0.02, 0, 0.02]; 
 
         // (a) LinkedIn
-        loader.load('assets/linkedinicon.glb', (gltf) => {
+        gltfLoader.load('assets/linkedinicon.glb', (gltf) => {
           const mesh = gltf.scene;
           mesh.scale.set(iconScale, iconScale, iconScale);
           mesh.position.set(posX[0], iconY, 0);
           mesh.traverse((c) => {
-            if (c.isMesh) c.material = new THREE.MeshStandardMaterial({
-              emissive: 0x00ffff, emissiveIntensity: 1.0
-            });
+            if (c.isMesh) c.material = new THREE.MeshStandardMaterial({ emissive: 0x00ffff, emissiveIntensity: 1.0 });
           });
           anchor.group.add(mesh);
         });
+
         // (b) Phone
-        loader.load('assets/phoneicon.glb', (gltf) => {
+        gltfLoader.load('assets/phoneicon.glb', (gltf) => {
           const mesh = gltf.scene;
           mesh.scale.set(iconScale, iconScale, iconScale);
           mesh.position.set(posX[1], iconY, 0);
           mesh.traverse((c) => {
-            if (c.isMesh) c.material = new THREE.MeshStandardMaterial({
-              emissive: 0x00ffff, emissiveIntensity: 1.0
-            });
+            if (c.isMesh) c.material = new THREE.MeshStandardMaterial({ emissive: 0x00ffff, emissiveIntensity: 1.0 });
           });
           anchor.group.add(mesh);
         });
-        // (c) [skip link here]
+
         // (d) Email
-        loader.load('assets/emailicon.glb', (gltf) => {
+        gltfLoader.load('assets/emailicon.glb', (gltf) => {
           const mesh = gltf.scene;
           mesh.scale.set(iconScale, iconScale, iconScale);
           mesh.position.set(posX[2], iconY, 0);
           mesh.traverse((c) => {
-            if (c.isMesh) c.material = new THREE.MeshStandardMaterial({
-              emissive: 0x00ffff, emissiveIntensity: 1.0
-            });
+            if (c.isMesh) c.material = new THREE.MeshStandardMaterial({ emissive: 0x00ffff, emissiveIntensity: 1.0 });
           });
           anchor.group.add(mesh);
         });
       }
 
-      // 7) Start MindAR (requests camera access)
+      //
+      // 8) Start MindAR (requests camera access)
+      //
       await mindARThree.start();
 
-      // 8) Render loop
+      //
+      // 9) Standard Three.js render loop
+      //
       renderer.setAnimationLoop(() => {
         renderer.render(scene, camera);
       });
