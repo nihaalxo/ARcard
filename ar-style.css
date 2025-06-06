@@ -1,0 +1,19 @@
+#ar-container,
+#ar-container canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: auto !important;
+  z-index: 10;
+}
+#ar-container video,
+video,
+#ar-container video {
+  pointer-events: none !important;
+}
+body {
+  margin: 0;
+  overflow: hidden;
+}

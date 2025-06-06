@@ -149,7 +149,8 @@
       // Add raycasting for clickable icons (robust for groups/children)
       const raycaster = new THREE.Raycaster();
       const mouse = new THREE.Vector2();
-      renderer.domElement.addEventListener('pointerdown', (event) => {
+      function handlePointerDown(event) {
+        console.log('Pointer event received');
         const rect = renderer.domElement.getBoundingClientRect();
         mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -167,6 +168,15 @@
             window.open(iconLinks[i], '_blank');
           }
         }
+      }
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown);
+      document.body.addEventListener('pointerdown', handlePointerDown);
+
+      // Ensure renderer and camera are synced on resize
+      window.addEventListener('resize', () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
       });
 
       // 7.5) LIGHTNING VIDEO PLANE
