@@ -178,7 +178,6 @@
 
       function handlePointerOrTouch(event) {
         console.log("▶️ handlePointerOrTouch fired:", event.type, event.clientX, event.clientY);
-        event.preventDefault();
 
         let x, y;
         if (event.type === "touchstart") {
