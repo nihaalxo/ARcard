@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card (Fixed gltfLoader)</title>
+  <title>My AR Business Card (Fixed scale and layout)</title>
 
   <!-- 1) Three.js (global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
@@ -51,140 +51,80 @@
       const gltfLoader = new THREE.GLTFLoader();
 
       //
-      // 3) Add the PHYSICAL card plane (your printed card) as a virtual plane underneath all AR content.
-      //    This is 8.8 cm × 5.8 cm → 0.088 m × 0.058 m.
+      // 3) CHARACTER + BACKGROUND (3Dmodel.glb)
       //
-      {
-        const cardTexture = new THREE.TextureLoader().load('assets/cardback.png');
-        const cardMat = new THREE.MeshBasicMaterial({ map: cardTexture });
-        const cardGeo = new THREE.PlaneGeometry(0.088, 0.058);
-        const cardPlane = new THREE.Mesh(cardGeo, cardMat);
-        cardPlane.position.set(0, 0, 0);      // flush to the tracked image
-        anchor.group.add(cardPlane);
-      }
+      gltfLoader.load('assets/3Dmodel.glb', (gltf) => {
+        const model = gltf.scene;
+        model.scale.set(0.18, 0.18, 0.18);  // Larger scale
+        model.position.set(0, 0.045, 0.012);  // Raised and forward
+        anchor.group.add(model);
+      });
 
       //
-      // 4) Load your character + background GLB (3Dmodel.glb).
-      //    Scale & position so that it stands on top of the card.
-      //
-      {
-        gltfLoader.load('assets/3Dmodel.glb', (gltf) => {
-          const model = gltf.scene;
-          // Adjust these values to taste: 
-          //    - scale controls the character's real‐world height relative to the card 
-          //    - position.y lifts it up so "feet" land on the card surface
-          //    - position.z pushes it forward/up off the card surface into camera view
-          model.scale.set(0.05, 0.05, 0.05);   // ~5% of original size (tweak as needed)
-          model.position.set(0, 0.02, 0.02);   // 2 cm above card surface, 2 cm toward camera
-          // If your GLB has its own material settings (emissive glow, etc.), you can tweak here.
-          anchor.group.add(model);
-        });
-      }
-
-      //
-      // 5) Floating Lightning Video—make it BIGGER and behind the character.
-      //    We'll use a slightly larger plane (0.20 m × 0.12 m) and push it "into" the card.
+      // 4) LIGHTNING VIDEO (background)
       //
       {
         const video = document.createElement('video');
         video.src = 'assets/lightning.mp4';
         video.loop = true;
-        video.muted = true; 
+        video.muted = true;
         video.playsInline = true;
-        await video.play();  // wait for the video to actually start
-        const videoTex = new THREE.VideoTexture(video);
-
-        const lightningMat = new THREE.MeshBasicMaterial({
-          map: videoTex,
+        await video.play();
+        const vidTex = new THREE.VideoTexture(video);
+        const lightMat = new THREE.MeshBasicMaterial({
+          map: vidTex,
           transparent: true,
           blending: THREE.AdditiveBlending,
           opacity: 0.9,
         });
-        // Larger than card (20 cm × 12 cm → 0.20 m × 0.12 m)
-        const lightningGeo = new THREE.PlaneGeometry(0.20, 0.12);
-        const lightningMesh = new THREE.Mesh(lightningGeo, lightningMat);
-        // Push it slightly "behind" the card so character is in front of it:
-        lightningMesh.position.set(0, 0.02, -0.01);
-        // Rotate it so it faces the camera (the card is vertical by default)
-        lightningMesh.rotation.y = Math.PI;  
-        anchor.group.add(lightningMesh);
+        const lightGeo = new THREE.PlaneGeometry(0.24, 0.16); // Even bigger
+        const lightningPlane = new THREE.Mesh(lightGeo, lightMat);
+        lightningPlane.rotation.y = Math.PI;
+        lightningPlane.position.set(0, 0.045, -0.025); // Behind model
+        anchor.group.add(lightningPlane);
 
         //
-        // 6) LINK ICON (behind the character & below lightning plane)
+        // 5) LINK ICON (banner, below character, in front of lightning)
         //
-        // Load a second instance of the "link" GLB here, 
-        // but rotate it exactly like the lightning plane (so it faces the camera vertically).
-        // Then push it slightly downwards and behind the character.
         gltfLoader.load('assets/link.glb', (gltf) => {
           const linkIcon = gltf.scene;
-          linkIcon.scale.set(0.015, 0.015, 0.015);  // ~1.5 cm tall
-          // Place it 2 cm below center of the card, and 1 cm behind the card surface
-          linkIcon.position.set(0, -0.02, -0.01);
-          // Rotate it to face the camera (same as lightningPlane)
+          linkIcon.scale.set(0.09, 0.09, 0.09); // Larger
           linkIcon.rotation.y = Math.PI;
-          // Give it a subtle emissive glow (optional)
-          linkIcon.traverse((child) => {
-            if (child.isMesh) {
-              child.material = new THREE.MeshStandardMaterial({
-                emissive: 0x00ffff,
-                emissiveIntensity: 1.0,
-              });
-            }
-          });
+          linkIcon.position.set(0, -0.01, 0.006); // Just below model, above card
           anchor.group.add(linkIcon);
         });
       }
 
       //
-      // 7) Social Icons: shrink & position them along the front edge of the card.
+      // 6) SOCIAL ICONS ON CARD (email, phone, portfolio, linkedin)
       //
       {
-        const iconScale = 0.015;     // 1.5 cm tall each
-        const iconY = -0.02;         // 2 cm below card center (on the card surface)
-        // spacing: 4 icons equally spaced over ~+/- 4 cm
-        const posX = [-0.04, -0.02, 0, 0.02]; 
-
-        // (a) LinkedIn
-        gltfLoader.load('assets/linkedinicon.glb', (gltf) => {
-          const mesh = gltf.scene;
-          mesh.scale.set(iconScale, iconScale, iconScale);
-          mesh.position.set(posX[0], iconY, 0);
-          mesh.traverse((c) => {
-            if (c.isMesh) c.material = new THREE.MeshStandardMaterial({ emissive: 0x00ffff, emissiveIntensity: 1.0 });
+        const iconScale = 0.045;  // 4.5 cm
+        const iconY = -0.045;     // 4.5 cm below center
+        const posX = [-0.07, -0.023, 0.023, 0.07];
+        const iconFiles = [
+          'assets/emailicon.glb',
+          'assets/phoneicon.glb',
+          'assets/portfolioicon.glb',
+          'assets/linkedinicon.glb',
+        ];
+        for (let i = 0; i < iconFiles.length; i++) {
+          gltfLoader.load(iconFiles[i], (gltf) => {
+            const mesh = gltf.scene;
+            mesh.scale.set(iconScale, iconScale, iconScale);
+            mesh.position.set(posX[i], iconY, 0.002); // Slightly above card
+            anchor.group.add(mesh);
           });
-          anchor.group.add(mesh);
-        });
-
-        // (b) Phone
-        gltfLoader.load('assets/phoneicon.glb', (gltf) => {
-          const mesh = gltf.scene;
-          mesh.scale.set(iconScale, iconScale, iconScale);
-          mesh.position.set(posX[1], iconY, 0);
-          mesh.traverse((c) => {
-            if (c.isMesh) c.material = new THREE.MeshStandardMaterial({ emissive: 0x00ffff, emissiveIntensity: 1.0 });
-          });
-          anchor.group.add(mesh);
-        });
-
-        // (d) Email
-        gltfLoader.load('assets/emailicon.glb', (gltf) => {
-          const mesh = gltf.scene;
-          mesh.scale.set(iconScale, iconScale, iconScale);
-          mesh.position.set(posX[2], iconY, 0);
-          mesh.traverse((c) => {
-            if (c.isMesh) c.material = new THREE.MeshStandardMaterial({ emissive: 0x00ffff, emissiveIntensity: 1.0 });
-          });
-          anchor.group.add(mesh);
-        });
+        }
       }
 
       //
-      // 8) Start MindAR (requests camera access)
+      // 7) Start MindAR (requests camera access)
       //
       await mindARThree.start();
 
       //
-      // 9) Standard Three.js render loop
+      // 8) Standard Three.js render loop
       //
       renderer.setAnimationLoop(() => {
         renderer.render(scene, camera);
