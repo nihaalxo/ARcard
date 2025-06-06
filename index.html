@@ -2,13 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card (Blender-accurate layout, YZ swapped, icon X+90, link Z+270)</title>
+  <title>My AR Business Card (EXR lighting + ambient light)</title>
 
   <!-- 1) Three.js (global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
   <!-- 2) GLTFLoader (attaches to global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
-  <!-- 3) MindAR (uses that same THREE internally) -->
+  <!-- 3) EXRLoader for environment lighting -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/EXRLoader.js"></script>
+  <!-- 4) MindAR (uses that same THREE internally) -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <style>
@@ -45,13 +47,24 @@
       // 2) Create an anchor for the first target (index 0)
       const anchor = mindARThree.addAnchor(0);
 
+      // 3) Add ambient light
+      scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+
+      // 4) Set up EXR environment map
+      const pmremGenerator = new THREE.PMREMGenerator(renderer);
+      const exrLoader = new THREE.EXRLoader();
+      exrLoader.load('assets/forest.exr', (texture) => {
+        const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+        scene.environment = envMap;
+      });
+
       //
-      // 2) Instantiate GLTFLoader once (so we can reuse it everywhere)
+      // 5) Instantiate GLTFLoader once (so we can reuse it everywhere)
       //
       const gltfLoader = new THREE.GLTFLoader();
 
       //
-      // 3) CHARACTER MODEL (Blender: 0,0,0.07 loc, 2.42 scale, 90 X rot)
+      // 6) CHARACTER MODEL (Blender: 0,0,0.07 loc, 2.42 scale, 90 X rot)
       //
       gltfLoader.load('assets/3Dmodel.glb', (gltf) => {
         const model = gltf.scene;
@@ -62,20 +75,20 @@
       });
 
       //
-      // 4) LINK BANNER (Blender: 0,2.33,0.37 loc, 0.54 scale, -90 Z rot, +270 Z)
+      // 7) LINK BANNER (Blender: 0,2.33,0.37 loc, 0.54 scale, -90 Z rot, +270 Z)
       //
       // Blender: pos (0, 2.33, 0.37), rot (0, 0, -90deg)
       // Three.js: pos (0, 0.37/3.517, 2.33/3.517), rot (0, -Math.PI/2, Math.PI + Math.PI/2)
       gltfLoader.load('assets/link.glb', (gltf) => {
         const linkIcon = gltf.scene;
         linkIcon.scale.set(0.154, 0.154, 0.154); // 0.54 / 3.517
-        linkIcon.position.set(0, 0.105, 0.663); // (X, Z, Y)
+        linkIcon.position.set(0, 0, 0.663); // (X, Y=0, Z)
         linkIcon.rotation.set(0, -Math.PI/2, Math.PI + Math.PI/2); // (rotX, rotZ, rotY) with +270deg Z
         anchor.group.add(linkIcon);
       });
 
       //
-      // 5) SOCIAL ICONS (Blender positions/scales, 0,0,0 rot + 90deg X)
+      // 8) SOCIAL ICONS (Blender positions/scales, 0,0,0 rot + 90deg X)
       //
       // Blender: pos (X, Y, Z), rot (0,0,0)
       // Three.js: pos (X, Z, Y), rot (Math.PI/2,0,0)
@@ -96,12 +109,12 @@
       }
 
       //
-      // 6) Start MindAR (requests camera access)
+      // 9) Start MindAR (requests camera access)
       //
       await mindARThree.start();
 
       //
-      // 7) Standard Three.js render loop
+      // 10) Standard Three.js render loop
       //
       renderer.setAnimationLoop(() => {
         renderer.render(scene, camera);
