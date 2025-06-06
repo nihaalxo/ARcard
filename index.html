@@ -149,7 +149,9 @@
       // Add postprocessing for bloom
       const composer = new window.THREE.EffectComposer(renderer);
       const renderPass = new window.THREE.RenderPass(scene, camera);
+      renderPass.clear = false;
       composer.addPass(renderPass);
+      composer.autoClear = false;
       const bloomPass = new window.THREE.UnrealBloomPass(
         new window.THREE.Vector2(window.innerWidth, window.innerHeight),
         1.0, // strength
