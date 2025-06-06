@@ -52,6 +52,7 @@
 
       // Grab renderer, scene, camera
       const { renderer, scene, camera } = mindARThree;
+      renderer.setClearColor(0x000000, 0); // transparent background for AR video
 
       // 2) Create an anchor for the first target (index 0)
       const anchor = mindARThree.addAnchor(0);
