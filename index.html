@@ -68,7 +68,7 @@
       //
       gltfLoader.load('assets/3Dmodel.glb', (gltf) => {
         const model = gltf.scene;
-        model.scale.set(0.688, 0.688, 0.688); // 2.42 / 3.517
+        model.scale.set(0.57, 0.57, 0.57); // updated scale
         model.position.set(0, 0, 0.02); // 0,0,0.07 / 3.517
         model.rotation.set(Math.PI/2, 0, 0); // 90 X
         anchor.group.add(model);
@@ -135,10 +135,21 @@
       await mindARThree.start();
 
       //
-      // 10) Standard Three.js render loop
-      //
+      // 10) Standard Three.js render loop with bloom postprocessing
+      // Add postprocessing for bloom
+      const composer = new window.THREE.EffectComposer(renderer);
+      const renderPass = new window.THREE.RenderPass(scene, camera);
+      composer.addPass(renderPass);
+      const bloomPass = new window.THREE.UnrealBloomPass(
+        new window.THREE.Vector2(window.innerWidth, window.innerHeight),
+        1.0, // strength
+        0.4, // radius
+        0.85 // threshold
+      );
+      composer.addPass(bloomPass);
+
       renderer.setAnimationLoop(() => {
-        renderer.render(scene, camera);
+        composer.render();
       });
     });
   </script>
