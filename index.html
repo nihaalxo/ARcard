@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card (Blender-accurate layout, YZ swapped, icon X+90, link Z+90)</title>
+  <title>My AR Business Card (Blender-accurate layout, YZ swapped, icon X+90, link Z+180)</title>
 
   <!-- 1) Three.js (global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
@@ -62,15 +62,15 @@
       });
 
       //
-      // 4) LINK BANNER (Blender: 0,2.33,0.37 loc, 0.54 scale, -90 Z rot, +90 Z)
+      // 4) LINK BANNER (Blender: 0,2.33,0.37 loc, 0.54 scale, -90 Z rot, +180 Z)
       //
       // Blender: pos (0, 2.33, 0.37), rot (0, 0, -90deg)
-      // Three.js: pos (0, 0.37/3.517, 2.33/3.517), rot (0, -Math.PI/2, Math.PI/2)
+      // Three.js: pos (0, 0.37/3.517, 2.33/3.517), rot (0, -Math.PI/2, Math.PI)
       gltfLoader.load('assets/link.glb', (gltf) => {
         const linkIcon = gltf.scene;
         linkIcon.scale.set(0.154, 0.154, 0.154); // 0.54 / 3.517
         linkIcon.position.set(0, 0.105, 0.663); // (X, Z, Y)
-        linkIcon.rotation.set(0, -Math.PI/2, Math.PI/2); // (rotX, rotZ, rotY) with +90deg Z
+        linkIcon.rotation.set(0, -Math.PI/2, Math.PI); // (rotX, rotZ, rotY) with +180deg Z
         anchor.group.add(linkIcon);
       });
 
