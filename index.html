@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card (with Link Icon Behind Character)</title>
+  <title>My AR Business Card (Fixed gltfLoader)</title>
 
-  <!-- 1) Load Three.js first (global THREE) -->
+  <!-- 1) Three.js (global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-  <!-- 2) Then GLTFLoader (attaches to that THREE) -->
+  <!-- 2) GLTFLoader (attaches to global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
-  <!-- 3) Then MindAR (which uses global THREE) -->
+  <!-- 3) MindAR (uses that same THREE internally) -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <style>
@@ -32,7 +32,7 @@
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
       //
-      // 1) Initialize MindAR (expects THREE to already be loaded)
+      // 1) Initialize MindAR
       //
       const mindARThree = new window.MINDAR.IMAGE.MindARThree({
         container: document.querySelector('#ar-container'),
@@ -44,6 +44,11 @@
 
       // 2) Create an anchor for the first target (index 0)
       const anchor = mindARThree.addAnchor(0);
+
+      //
+      // 2) Instantiate GLTFLoader once (so we can reuse it everywhere)
+      //
+      const gltfLoader = new THREE.GLTFLoader();
 
       //
       // 3) Add the PHYSICAL card plane (your printed card) as a virtual plane underneath all AR content.
@@ -63,7 +68,6 @@
       //    Scale & position so that it stands on top of the card.
       //
       {
-        const gltfLoader = new THREE.GLTFLoader();
         gltfLoader.load('assets/3Dmodel.glb', (gltf) => {
           const model = gltf.scene;
           // Adjust these values to taste: 
@@ -135,7 +139,6 @@
       // 7) Social Icons: shrink & position them along the front edge of the card.
       //
       {
-        const gltfLoader = new THREE.GLTFLoader();
         const iconScale = 0.015;     // 1.5 cm tall each
         const iconY = -0.02;         // 2 cm below card center (on the card surface)
         // spacing: 4 icons equally spaced over ~+/- 4 cm
