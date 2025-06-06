@@ -2,15 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card (MindAR + Global THREE)</title>
+  <title>My AR Business Card (with Link Icon Behind Character)</title>
 
-  <!-- 1) Load Three.js (global THREE) BEFORE anything else -->
+  <!-- 1) Load Three.js first (global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-
-  <!-- 2) Load GLTFLoader, which attaches to that same global THREE -->
+  <!-- 2) Then GLTFLoader (attaches to that THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
-
-  <!-- 3) Finally load MindAR, which will use global THREE for rendering -->
+  <!-- 3) Then MindAR (which uses global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
 
   <style>
@@ -33,66 +31,36 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
-      // 1) Initialize MindAR, which expects THREE to already be defined globally
+      // 1) Initialize MindAR
       const mindARThree = new window.MINDAR.IMAGE.MindARThree({
         container: document.querySelector('#ar-container'),
         imageTargetSrc: 'assets/markers/targets.mind',
       });
-
-      // 2) Destructure the renderer, scene, and camera from MindARThree
       const { renderer, scene, camera } = mindARThree;
-
-      // 3) Create an anchor for the first (and only) image target (index 0)
       const anchor = mindARThree.addAnchor(0);
 
-      // 4a) Debug Box: a 2 cm red cube to confirm tracking
+      // 2) CARD PLANE (8.8 cm × 5.8 cm)
       {
-        const debugBoxGeo = new THREE.BoxGeometry(0.02, 0.02, 0.02);
-        const debugBoxMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const debugBox = new THREE.Mesh(debugBoxGeo, debugBoxMat);
-        debugBox.position.set(0, 0.01, 0);
-        anchor.group.add(debugBox);
-      }
-
-      // 4b) Virtual Card Plane (8.8 cm × 5.8 cm) showing cardback.png
-      {
-        const cardTexture = new THREE.TextureLoader().load('assets/cardback.png');
-        const cardMaterial = new THREE.MeshBasicMaterial({ map: cardTexture });
+        const cardTex = new THREE.TextureLoader().load('assets/cardback.png');
+        const cardMat = new THREE.MeshBasicMaterial({ map: cardTex });
         const cardGeo = new THREE.PlaneGeometry(0.088, 0.058);
-        const cardPlane = new THREE.Mesh(cardGeo, cardMaterial);
+        const cardPlane = new THREE.Mesh(cardGeo, cardMat);
         cardPlane.position.set(0, 0, 0);
         anchor.group.add(cardPlane);
       }
 
-      // 4c) Glow Overlay Plane (using emmisivepattern.png)
+      // 3) CHARACTER + BACKGROUND (3Dmodel.glb)
       {
-        const glowTexture = new THREE.TextureLoader().load('assets/emmisivepattern.png');
-        const glowMaterial = new THREE.MeshBasicMaterial({
-          map: glowTexture,
-          transparent: true,
-          blending: THREE.AdditiveBlending,
-          color: 0x00ffff,
-          opacity: 0.8,
+        const loader = new THREE.GLTFLoader();
+        loader.load('assets/3Dmodel.glb', (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(0.05, 0.05, 0.05);      // ~5% size, tweak as needed
+          model.position.set(0, 0.02, 0.02);      // 2 cm up, 2 cm forward
+          anchor.group.add(model);
         });
-        const cardGeo = new THREE.PlaneGeometry(0.088, 0.058);
-        const glowPlane = new THREE.Mesh(cardGeo, glowMaterial);
-        glowPlane.position.set(0, 0, 0.001); // 1 mm above card
-        anchor.group.add(glowPlane);
-
-        // Optional pulsing for glow opacity
-        let up = true;
-        setInterval(() => {
-          if (up) {
-            glowMaterial.opacity = Math.min(glowMaterial.opacity + 0.05, 1.0);
-            if (glowMaterial.opacity >= 1.0) up = false;
-          } else {
-            glowMaterial.opacity = Math.max(glowMaterial.opacity - 0.05, 0.3);
-            if (glowMaterial.opacity <= 0.3) up = true;
-          }
-        }, 100);
       }
 
-      // 4d) Floating Lightning Video as a VideoTexture
+      // 4) LIGHTNING VIDEO (20 cm × 12 cm), behind the character
       {
         const video = document.createElement('video');
         video.src = 'assets/lightning.mp4';
@@ -100,95 +68,98 @@
         video.muted = true;
         video.playsInline = true;
         await video.play();
-        const videoTexture = new THREE.VideoTexture(video);
-        const lightningMat = new THREE.MeshBasicMaterial({
-          map: videoTexture,
+        const vidTex = new THREE.VideoTexture(video);
+        const lightMat = new THREE.MeshBasicMaterial({
+          map: vidTex,
           transparent: true,
           blending: THREE.AdditiveBlending,
           opacity: 0.9,
         });
-        const lightningGeo = new THREE.PlaneGeometry(0.12, 0.08); // 12 cm × 8 cm
-        const lightningPlane = new THREE.Mesh(lightningGeo, lightningMat);
-        lightningPlane.position.set(0, 0, 0.08); // 8 cm in front
+        const lightGeo = new THREE.PlaneGeometry(0.20, 0.12);
+        const lightningPlane = new THREE.Mesh(lightGeo, lightMat);
+        // Same orientation as the card (vertical) but flipped to face the camera
+        lightningPlane.rotation.y = Math.PI;
+        // Position it 2 cm up (so it sits "behind" the character) 
+        // and 1 cm behind the card surface (negative Z)
+        lightningPlane.position.set(0, 0.02, -0.01);
         anchor.group.add(lightningPlane);
+
+        //
+        // 5) LINK ICON (behind the character & below lightning plane)
+        //
+        // Load a second instance of the "link" GLB here, 
+        // but rotate it exactly like the lightning plane (so it faces the camera vertically).
+        // Then push it slightly downwards and behind the character.
+        loader.load('assets/link.glb', (gltf) => {
+          const linkIcon = gltf.scene;
+          linkIcon.scale.set(0.015, 0.015, 0.015);  // ~1.5 cm tall
+          // Place it 2 cm below center of the card, and 1 cm behind the card surface
+          linkIcon.position.set(0, -0.02, -0.01);
+          // Rotate it to face the camera (same as lightningPlane)
+          linkIcon.rotation.y = Math.PI;
+          // Give it a subtle emissive glow (optional)
+          linkIcon.traverse((child) => {
+            if (child.isMesh) {
+              child.material = new THREE.MeshStandardMaterial({
+                emissive: 0x00ffff,
+                emissiveIntensity: 1.0,
+              });
+            }
+          });
+          anchor.group.add(linkIcon);
+        });
       }
 
-      // 4e) Load 3D Social Icons via GLTFLoader (which now sees global THREE)
+      // 6) FOUR SOCIAL ICONS ON CARD (excluding "link" which is repositioned above)
       {
-        const gltfLoader = new THREE.GLTFLoader();
-        const iconScale = 0.02;   // 2 cm
-        const iconY = -0.03;      // 3 cm below center
-        const posX = [-0.04, -0.02, 0, 0.02]; // x positions for four icons
+        const loader = new THREE.GLTFLoader();
+        const iconScale = 0.015;   // 1.5 cm tall
+        const iconY = -0.02;       // 2 cm below center, so flush on card surface
+        const posX = [-0.04, -0.02, /* link is removed from here */, 0.02];
 
-        // (1) LinkedIn Icon
-        gltfLoader.load('assets/linkedinicon.glb', (gltf) => {
+        // (a) LinkedIn
+        loader.load('assets/linkedinicon.glb', (gltf) => {
           const mesh = gltf.scene;
           mesh.scale.set(iconScale, iconScale, iconScale);
           mesh.position.set(posX[0], iconY, 0);
-          mesh.traverse((child) => {
-            if (child.isMesh) {
-              child.material = new THREE.MeshStandardMaterial({
-                emissive: 0x00ffff,
-                emissiveIntensity: 1.0,
-              });
-            }
+          mesh.traverse((c) => {
+            if (c.isMesh) c.material = new THREE.MeshStandardMaterial({
+              emissive: 0x00ffff, emissiveIntensity: 1.0
+            });
           });
           anchor.group.add(mesh);
         });
-
-        // (2) Phone Icon
-        gltfLoader.load('assets/phoneicon.glb', (gltf) => {
+        // (b) Phone
+        loader.load('assets/phoneicon.glb', (gltf) => {
           const mesh = gltf.scene;
           mesh.scale.set(iconScale, iconScale, iconScale);
           mesh.position.set(posX[1], iconY, 0);
-          mesh.traverse((child) => {
-            if (child.isMesh) {
-              child.material = new THREE.MeshStandardMaterial({
-                emissive: 0x00ffff,
-                emissiveIntensity: 1.0,
-              });
-            }
+          mesh.traverse((c) => {
+            if (c.isMesh) c.material = new THREE.MeshStandardMaterial({
+              emissive: 0x00ffff, emissiveIntensity: 1.0
+            });
           });
           anchor.group.add(mesh);
         });
-
-        // (3) Portfolio/Link Icon
-        gltfLoader.load('assets/link.glb', (gltf) => {
+        // (c) [skip link here]
+        // (d) Email
+        loader.load('assets/emailicon.glb', (gltf) => {
           const mesh = gltf.scene;
           mesh.scale.set(iconScale, iconScale, iconScale);
           mesh.position.set(posX[2], iconY, 0);
-          mesh.traverse((child) => {
-            if (child.isMesh) {
-              child.material = new THREE.MeshStandardMaterial({
-                emissive: 0x00ffff,
-                emissiveIntensity: 1.0,
-              });
-            }
-          });
-          anchor.group.add(mesh);
-        });
-
-        // (4) Email Icon
-        gltfLoader.load('assets/emailicon.glb', (gltf) => {
-          const mesh = gltf.scene;
-          mesh.scale.set(iconScale, iconScale, iconScale);
-          mesh.position.set(posX[3], iconY, 0);
-          mesh.traverse((child) => {
-            if (child.isMesh) {
-              child.material = new THREE.MeshStandardMaterial({
-                emissive: 0x00ffff,
-                emissiveIntensity: 1.0,
-              });
-            }
+          mesh.traverse((c) => {
+            if (c.isMesh) c.material = new THREE.MeshStandardMaterial({
+              emissive: 0x00ffff, emissiveIntensity: 1.0
+            });
           });
           anchor.group.add(mesh);
         });
       }
 
-      // 5) Start MindAR (requests camera access)
+      // 7) Start MindAR (requests camera access)
       await mindARThree.start();
 
-      // 6) Render loop
+      // 8) Render loop
       renderer.setAnimationLoop(() => {
         renderer.render(scene, camera);
       });
