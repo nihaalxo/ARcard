@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card (Blender-accurate layout, YZ swapped)</title>
+  <title>My AR Business Card (Blender-accurate layout, YZ swapped, icon X+90, link Z+90)</title>
 
   <!-- 1) Three.js (global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
@@ -62,19 +62,23 @@
       });
 
       //
-      // 4) LINK BANNER (Blender: 0,2.33,0.37 loc, 0.54 scale, -90 Z rot)
+      // 4) LINK BANNER (Blender: 0,2.33,0.37 loc, 0.54 scale, -90 Z rot, +90 Z)
       //
+      // Blender: pos (0, 2.33, 0.37), rot (0, 0, -90deg)
+      // Three.js: pos (0, 0.37/3.517, 2.33/3.517), rot (0, -Math.PI/2, Math.PI/2)
       gltfLoader.load('assets/link.glb', (gltf) => {
         const linkIcon = gltf.scene;
         linkIcon.scale.set(0.154, 0.154, 0.154); // 0.54 / 3.517
         linkIcon.position.set(0, 0.105, 0.663); // (X, Z, Y)
-        linkIcon.rotation.set(0, -Math.PI/2, 0); // (rotX, rotZ, rotY)
+        linkIcon.rotation.set(0, -Math.PI/2, Math.PI/2); // (rotX, rotZ, rotY) with +90deg Z
         anchor.group.add(linkIcon);
       });
 
       //
-      // 5) SOCIAL ICONS (Blender positions/scales, 0,0,0 rot)
+      // 5) SOCIAL ICONS (Blender positions/scales, 0,0,0 rot + 90deg X)
       //
+      // Blender: pos (X, Y, Z), rot (0,0,0)
+      // Three.js: pos (X, Z, Y), rot (Math.PI/2,0,0)
       const iconData = [
         { file: 'assets/emailicon.glb',      pos: [-0.569, 0.028, -0.854], scale: 0.159 },
         { file: 'assets/phoneicon.glb',      pos: [-0.191, 0.028, -0.854], scale: 0.159 },
@@ -86,7 +90,7 @@
           const mesh = gltf.scene;
           mesh.scale.set(iconData[i].scale, iconData[i].scale, iconData[i].scale);
           mesh.position.set(iconData[i].pos[0], iconData[i].pos[1], iconData[i].pos[2]);
-          mesh.rotation.set(0, 0, 0); // (rotX, rotZ, rotY) = (0,0,0)
+          mesh.rotation.set(Math.PI/2, 0, 0); // (rotX, rotZ, rotY) = (90deg X, 0, 0)
           anchor.group.add(mesh);
         });
       }
