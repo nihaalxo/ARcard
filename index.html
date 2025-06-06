@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card (Blender-accurate layout)</title>
+  <title>My AR Business Card (Blender-accurate layout, YZ swapped)</title>
 
   <!-- 1) Three.js (global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
@@ -67,8 +67,8 @@
       gltfLoader.load('assets/link.glb', (gltf) => {
         const linkIcon = gltf.scene;
         linkIcon.scale.set(0.154, 0.154, 0.154); // 0.54 / 3.517
-        linkIcon.position.set(0, 0.663, 0.105); // 0,2.33,0.37 / 3.517
-        linkIcon.rotation.set(0, 0, -Math.PI/2); // -90 Z
+        linkIcon.position.set(0, 0.105, 0.663); // (X, Z, Y)
+        linkIcon.rotation.set(0, -Math.PI/2, 0); // (rotX, rotZ, rotY)
         anchor.group.add(linkIcon);
       });
 
@@ -76,17 +76,17 @@
       // 5) SOCIAL ICONS (Blender positions/scales, 0,0,0 rot)
       //
       const iconData = [
-        { file: 'assets/emailicon.glb',      pos: [-0.569, -0.854, 0.028], scale: 0.159 },
-        { file: 'assets/phoneicon.glb',      pos: [-0.191, -0.854, 0.028], scale: 0.159 },
-        { file: 'assets/portfolioicon.glb',  pos: [ 0.195, -0.854, 0.028], scale: 0.159 },
-        { file: 'assets/linkedinicon.glb',   pos: [ 0.569, -0.854, 0.028], scale: 0.159 },
+        { file: 'assets/emailicon.glb',      pos: [-0.569, 0.028, -0.854], scale: 0.159 },
+        { file: 'assets/phoneicon.glb',      pos: [-0.191, 0.028, -0.854], scale: 0.159 },
+        { file: 'assets/portfolioicon.glb',  pos: [ 0.195, 0.028, -0.854], scale: 0.159 },
+        { file: 'assets/linkedinicon.glb',   pos: [ 0.569, 0.028, -0.854], scale: 0.159 },
       ];
       for (let i = 0; i < iconData.length; i++) {
         gltfLoader.load(iconData[i].file, (gltf) => {
           const mesh = gltf.scene;
           mesh.scale.set(iconData[i].scale, iconData[i].scale, iconData[i].scale);
           mesh.position.set(iconData[i].pos[0], iconData[i].pos[1], iconData[i].pos[2]);
-          mesh.rotation.set(0, 0, 0); // 0,0,0
+          mesh.rotation.set(0, 0, 0); // (rotX, rotZ, rotY) = (0,0,0)
           anchor.group.add(mesh);
         });
       }
