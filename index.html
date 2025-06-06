@@ -125,7 +125,7 @@
         const lightningGeo = new THREE.PlaneGeometry(0.48, 0.27); // 16:9 aspect ratio
         const lightningPlane = new THREE.Mesh(lightningGeo, lightningMat);
         lightningPlane.position.set(0, 0.44, 0.2);
-        lightningPlane.rotation.z = Math.PI / 2;
+        lightningPlane.rotation.y = Math.PI / 2;
         anchor.group.add(lightningPlane);
       }
 
