@@ -82,7 +82,7 @@
       gltfLoader.load('assets/link.glb', (gltf) => {
         const linkIcon = gltf.scene;
         linkIcon.scale.set(0.154, 0.154, 0.154); // 0.54 / 3.517
-        linkIcon.position.set(0, 0, 0.663); // (X, Y=0, Z)
+        linkIcon.position.set(0, 0.663, 0); // (X, Y=0.663, Z=0)
         linkIcon.rotation.set(0, -Math.PI/2, Math.PI + Math.PI/2); // (rotX, rotZ, rotY) with +270deg Z
         anchor.group.add(linkIcon);
       });
