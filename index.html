@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card (Blender-accurate layout, YZ swapped, icon X+90, link Z+270)</title>
+  <title>My AR Business Card (Blender-accurate layout, YZ swapped, icon X+90, link Z+270, new Z spacing)</title>
 
   <!-- 1) Three.js (global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
@@ -56,7 +56,7 @@
       gltfLoader.load('assets/3Dmodel.glb', (gltf) => {
         const model = gltf.scene;
         model.scale.set(0.688, 0.688, 0.688); // 2.42 / 3.517
-        model.position.set(0, 0, 0.02); // 0,0,0.07 / 3.517
+        model.position.set(0, 0, 0); // Z = 0
         model.rotation.set(Math.PI/2, 0, 0); // 90 X
         anchor.group.add(model);
       });
@@ -69,7 +69,7 @@
       gltfLoader.load('assets/link.glb', (gltf) => {
         const linkIcon = gltf.scene;
         linkIcon.scale.set(0.154, 0.154, 0.154); // 0.54 / 3.517
-        linkIcon.position.set(0, 0.105, 0.663); // (X, Z, Y)
+        linkIcon.position.set(0, 0.105, 2); // Z = 2
         linkIcon.rotation.set(0, -Math.PI/2, Math.PI + Math.PI/2); // (rotX, rotZ, rotY) with +270deg Z
         anchor.group.add(linkIcon);
       });
@@ -80,10 +80,10 @@
       // Blender: pos (X, Y, Z), rot (0,0,0)
       // Three.js: pos (X, Z, Y), rot (Math.PI/2,0,0)
       const iconData = [
-        { file: 'assets/emailicon.glb',      pos: [-0.569, 0.028, -0.854], scale: 0.159 },
-        { file: 'assets/phoneicon.glb',      pos: [-0.191, 0.028, -0.854], scale: 0.159 },
-        { file: 'assets/portfolioicon.glb',  pos: [ 0.195, 0.028, -0.854], scale: 0.159 },
-        { file: 'assets/linkedinicon.glb',   pos: [ 0.569, 0.028, -0.854], scale: 0.159 },
+        { file: 'assets/emailicon.glb',      pos: [-0.569, 0.028, -2], scale: 0.159 },
+        { file: 'assets/phoneicon.glb',      pos: [-0.191, 0.028, -2], scale: 0.159 },
+        { file: 'assets/portfolioicon.glb',  pos: [ 0.195, 0.028, -2], scale: 0.159 },
+        { file: 'assets/linkedinicon.glb',   pos: [ 0.569, 0.028, -2], scale: 0.159 },
       ];
       for (let i = 0; i < iconData.length; i++) {
         gltfLoader.load(iconData[i].file, (gltf) => {
