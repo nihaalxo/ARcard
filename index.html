@@ -146,8 +146,18 @@
       function handlePointerDown(event) {
         console.log('Pointer event received');
         const rect = renderer.domElement.getBoundingClientRect();
-        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        let x, y;
+        if (event.touches && event.touches.length > 0) {
+          // Touch event
+          x = event.touches[0].clientX;
+          y = event.touches[0].clientY;
+        } else {
+          // Mouse or pointer event
+          x = event.clientX;
+          y = event.clientY;
+        }
+        mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects([...iconMeshes], true);
         console.log('Raycast intersects:', intersects);
@@ -161,9 +171,6 @@
         }
       }
       renderer.domElement.addEventListener('pointerdown', handlePointerDown);
-      document.body.addEventListener('pointerdown', handlePointerDown);
-      renderer.domElement.addEventListener('touchstart', handlePointerDown);
-      document.body.addEventListener('touchstart', handlePointerDown);
 
       // Ensure renderer and camera are synced on resize
       window.addEventListener('resize', () => {
