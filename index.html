@@ -93,10 +93,10 @@
       // Blender: pos (X, Y, Z), rot (0,0,0)
       // Three.js: pos (X, Z, Y), rot (Math.PI/2,0,0)
       const iconData = [
-        { file: 'assets/emailicon.glb',      pos: [-0.450, -0.44, 0.028], scale: 1.0 },
-        { file: 'assets/phoneicon.glb',      pos: [-0.150, -0.44, 0.028], scale: 1.0 },
-        { file: 'assets/portfolioicon.glb',  pos: [ 0.150, -0.44, 0.028], scale: 1.0 },
-        { file: 'assets/linkedinicon.glb',   pos: [ 0.450, -0.44, 0.028], scale: 1.0 },
+        { file: 'assets/emailicon.glb',      pos: [-0.450, -0.44, 0.028], scale: 0.1 },
+        { file: 'assets/phoneicon.glb',      pos: [-0.150, -0.44, 0.028], scale: 0.1 },
+        { file: 'assets/portfolioicon.glb',  pos: [ 0.150, -0.44, 0.028], scale: 0.1 },
+        { file: 'assets/linkedinicon.glb',   pos: [ 0.450, -0.44, 0.028], scale: 0.1 },
       ];
       for (let i = 0; i < iconData.length; i++) {
         gltfLoader.load(iconData[i].file, (gltf) => {
@@ -125,6 +125,7 @@
         const lightningGeo = new THREE.PlaneGeometry(0.48, 0.27); // 16:9 aspect ratio
         const lightningPlane = new THREE.Mesh(lightningGeo, lightningMat);
         lightningPlane.position.set(0, 0.44, 0.2);
+        lightningPlane.rotation.z = Math.PI / 2;
         anchor.group.add(lightningPlane);
       }
 
