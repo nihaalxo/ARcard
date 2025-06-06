@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card (Fixed scale and layout)</title>
+  <title>My AR Business Card (Corrected orientation and scale)</title>
 
   <!-- 1) Three.js (global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
@@ -51,80 +51,56 @@
       const gltfLoader = new THREE.GLTFLoader();
 
       //
-      // 3) CHARACTER + BACKGROUND (3Dmodel.glb)
+      // 3) CHARACTER MODEL (upright, large, standing on QR)
       //
       gltfLoader.load('assets/3Dmodel.glb', (gltf) => {
         const model = gltf.scene;
-        model.scale.set(0.18, 0.18, 0.18);  // Larger scale
-        model.position.set(0, 0.045, 0.012);  // Raised and forward
+        model.scale.set(0.45, 0.45, 0.45); // much larger
+        model.position.set(0, 0, 0.025);   // center of card, standing on QR
+        model.rotation.set(-Math.PI/2, 0, 0); // upright
         anchor.group.add(model);
       });
 
       //
-      // 4) LIGHTNING VIDEO (background)
+      // 4) LINK BANNER (flat, below model, above card)
       //
-      {
-        const video = document.createElement('video');
-        video.src = 'assets/lightning.mp4';
-        video.loop = true;
-        video.muted = true;
-        video.playsInline = true;
-        await video.play();
-        const vidTex = new THREE.VideoTexture(video);
-        const lightMat = new THREE.MeshBasicMaterial({
-          map: vidTex,
-          transparent: true,
-          blending: THREE.AdditiveBlending,
-          opacity: 0.9,
-        });
-        const lightGeo = new THREE.PlaneGeometry(0.24, 0.16); // Even bigger
-        const lightningPlane = new THREE.Mesh(lightGeo, lightMat);
-        lightningPlane.rotation.y = Math.PI;
-        lightningPlane.position.set(0, 0.045, -0.025); // Behind model
-        anchor.group.add(lightningPlane);
+      gltfLoader.load('assets/link.glb', (gltf) => {
+        const linkIcon = gltf.scene;
+        linkIcon.scale.set(0.18, 0.18, 0.18); // much larger
+        linkIcon.position.set(0, -0.09, 0.012); // below model, above card
+        linkIcon.rotation.set(-Math.PI/2, 0, 0); // flat, facing up
+        anchor.group.add(linkIcon);
+      });
 
-        //
-        // 5) LINK ICON (banner, below character, in front of lightning)
-        //
-        gltfLoader.load('assets/link.glb', (gltf) => {
-          const linkIcon = gltf.scene;
-          linkIcon.scale.set(0.09, 0.09, 0.09); // Larger
-          linkIcon.rotation.y = Math.PI;
-          linkIcon.position.set(0, -0.01, 0.006); // Just below model, above card
-          anchor.group.add(linkIcon);
+      //
+      // 5) SOCIAL ICONS (flat, spaced out below card)
+      //
+      const iconScale = 0.09; // much larger
+      const iconY = -0.18;    // further below card
+      const posX = [-0.18, -0.06, 0.06, 0.18];
+      const iconFiles = [
+        'assets/emailicon.glb',
+        'assets/phoneicon.glb',
+        'assets/portfolioicon.glb',
+        'assets/linkedinicon.glb',
+      ];
+      for (let i = 0; i < iconFiles.length; i++) {
+        gltfLoader.load(iconFiles[i], (gltf) => {
+          const mesh = gltf.scene;
+          mesh.scale.set(iconScale, iconScale, iconScale);
+          mesh.position.set(posX[i], iconY, 0.012); // below card, above surface
+          mesh.rotation.set(-Math.PI/2, 0, 0); // flat, facing up
+          anchor.group.add(mesh);
         });
       }
 
       //
-      // 6) SOCIAL ICONS ON CARD (email, phone, portfolio, linkedin)
-      //
-      {
-        const iconScale = 0.045;  // 4.5 cm
-        const iconY = -0.045;     // 4.5 cm below center
-        const posX = [-0.07, -0.023, 0.023, 0.07];
-        const iconFiles = [
-          'assets/emailicon.glb',
-          'assets/phoneicon.glb',
-          'assets/portfolioicon.glb',
-          'assets/linkedinicon.glb',
-        ];
-        for (let i = 0; i < iconFiles.length; i++) {
-          gltfLoader.load(iconFiles[i], (gltf) => {
-            const mesh = gltf.scene;
-            mesh.scale.set(iconScale, iconScale, iconScale);
-            mesh.position.set(posX[i], iconY, 0.002); // Slightly above card
-            anchor.group.add(mesh);
-          });
-        }
-      }
-
-      //
-      // 7) Start MindAR (requests camera access)
+      // 6) Start MindAR (requests camera access)
       //
       await mindARThree.start();
 
       //
-      // 8) Standard Three.js render loop
+      // 7) Standard Three.js render loop
       //
       renderer.setAnimationLoop(() => {
         renderer.render(scene, camera);
