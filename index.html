@@ -166,18 +166,27 @@
       const raycaster = new THREE.Raycaster();
       const mouse = new THREE.Vector2();
 
-      function openLinkInNewTab(url) {
-        const a = document.createElement("a");
-        a.href = url;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+      function openLink(url) {
+        // If we detect a mobile iOS/Android user agent, do a same‐tab redirect:
+        const isMobile = /iPhone|iPad|iPod|Android/.test(navigator.userAgent);
+        if (isMobile) {
+          // This will navigate away from the AR page in the same window:
+          window.location.href = url;
+        } else {
+          // Desktop: open in a new tab as before
+          const a = document.createElement("a");
+          a.href = url;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
       }
 
       function handlePointerOrTouch(event) {
         console.log("▶️ handlePointerOrTouch fired:", event.type, event.clientX, event.clientY);
+        // event.preventDefault(); // Removed to allow natural tap handling on mobile
 
         let x, y;
         if (event.type === "touchstart") {
@@ -200,8 +209,8 @@
           const mesh = intersects[0].object;
           const i = iconMeshToIndex.get(mesh);
           if (i !== undefined) {
-            console.log("   ↳ Opening link:", iconLinks[i]);
-            openLinkInNewTab(iconLinks[i]);
+            console.log("   ↳ Navigating to link:", iconLinks[i]);
+            openLink(iconLinks[i]);
           }
         }
       }
