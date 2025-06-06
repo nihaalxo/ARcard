@@ -93,10 +93,10 @@
       // Blender: pos (X, Y, Z), rot (0,0,0)
       // Three.js: pos (X, Z, Y), rot (Math.PI/2,0,0)
       const iconData = [
-        { file: 'assets/emailicon.glb',      pos: [-0.569, 0.028, -0.854], scale: 0.159 },
-        { file: 'assets/phoneicon.glb',      pos: [-0.191, 0.028, -0.854], scale: 0.159 },
-        { file: 'assets/portfolioicon.glb',  pos: [ 0.195, 0.028, -0.854], scale: 0.159 },
-        { file: 'assets/linkedinicon.glb',   pos: [ 0.569, 0.028, -0.854], scale: 0.159 },
+        { file: 'assets/emailicon.glb',      pos: [-0.569, -0.44, 0.028], scale: 0.159 },
+        { file: 'assets/phoneicon.glb',      pos: [-0.191, -0.44, 0.028], scale: 0.159 },
+        { file: 'assets/portfolioicon.glb',  pos: [ 0.195, -0.44, 0.028], scale: 0.159 },
+        { file: 'assets/linkedinicon.glb',   pos: [ 0.569, -0.44, 0.028], scale: 0.159 },
       ];
       for (let i = 0; i < iconData.length; i++) {
         gltfLoader.load(iconData[i].file, (gltf) => {
