@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My AR Business Card (Corrected orientation and scale)</title>
+  <title>My AR Business Card (Final orientation and spacing tweaks)</title>
 
   <!-- 1) Three.js (global THREE) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
@@ -51,33 +51,33 @@
       const gltfLoader = new THREE.GLTFLoader();
 
       //
-      // 3) CHARACTER MODEL (upright, large, standing on QR)
+      // 3) CHARACTER MODEL (upright, large, standing on QR, facing camera)
       //
       gltfLoader.load('assets/3Dmodel.glb', (gltf) => {
         const model = gltf.scene;
-        model.scale.set(0.45, 0.45, 0.45); // much larger
+        model.scale.set(0.6, 0.6, 0.6); // even larger
         model.position.set(0, 0, 0.025);   // center of card, standing on QR
-        model.rotation.set(-Math.PI/2, 0, 0); // upright
+        model.rotation.set(-Math.PI/2, Math.PI/2, 0); // upright, facing camera
         anchor.group.add(model);
       });
 
       //
-      // 4) LINK BANNER (flat, below model, above card)
+      // 4) LINK BANNER (flat, below model, above card, rotated 90 Z and 90 Y)
       //
       gltfLoader.load('assets/link.glb', (gltf) => {
         const linkIcon = gltf.scene;
-        linkIcon.scale.set(0.18, 0.18, 0.18); // much larger
+        linkIcon.scale.set(0.22, 0.22, 0.22); // larger
         linkIcon.position.set(0, -0.09, 0.012); // below model, above card
-        linkIcon.rotation.set(-Math.PI/2, 0, 0); // flat, facing up
+        linkIcon.rotation.set(0, Math.PI/2, Math.PI/2); // 90 Z and 90 Y
         anchor.group.add(linkIcon);
       });
 
       //
-      // 5) SOCIAL ICONS (flat, spaced out below card)
+      // 5) SOCIAL ICONS (flat, spaced out below card, facing camera)
       //
-      const iconScale = 0.09; // much larger
+      const iconScale = 0.13; // even larger
       const iconY = -0.18;    // further below card
-      const posX = [-0.18, -0.06, 0.06, 0.18];
+      const posX = [-0.38, -0.13, 0.13, 0.38]; // much more spacing
       const iconFiles = [
         'assets/emailicon.glb',
         'assets/phoneicon.glb',
@@ -89,7 +89,7 @@
           const mesh = gltf.scene;
           mesh.scale.set(iconScale, iconScale, iconScale);
           mesh.position.set(posX[i], iconY, 0.012); // below card, above surface
-          mesh.rotation.set(-Math.PI/2, 0, 0); // flat, facing up
+          mesh.rotation.set(-Math.PI/2, Math.PI/2, 0); // flat, facing camera
           anchor.group.add(mesh);
         });
       }
