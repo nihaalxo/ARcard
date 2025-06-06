@@ -122,9 +122,9 @@
           transparent: true,
           opacity: 0.9,
         });
-        const lightningGeo = new THREE.PlaneGeometry(0.48, 0.27); // 16:9 aspect ratio
+        const lightningGeo = new THREE.PlaneGeometry(0.48 * 3, 0.27 * 3); // 3x bigger, 16:9 aspect ratio
         const lightningPlane = new THREE.Mesh(lightningGeo, lightningMat);
-        lightningPlane.position.set(0, 0.44, 0.2);
+        lightningPlane.position.set(0, 0.44, 0.5);
         lightningPlane.rotation.x = Math.PI / 2;
         anchor.group.add(lightningPlane);
       }
