@@ -97,11 +97,16 @@
         anchor.group.add(linkIcon);
       });
 
-      //
+      // Store references to icon meshes and their links
+      const iconMeshes = [];
+      const iconLinks = [
+        'mailto:nihaalnazeerxo@gmail.com',
+        'tel:+447387323516',
+        'https://nihaalnazeer.myportfolio.com/',
+        'https://www.linkedin.com/in/nihaal-nazeer-b6187117a/'
+      ];
+
       // 8) SOCIAL ICONS (Blender positions/scales, 0,0,0 rot + 90deg X)
-      //
-      // Blender: pos (X, Y, Z), rot (0,0,0)
-      // Three.js: pos (X, Z, Y), rot (Math.PI/2,0,0)
       const iconData = [
         { file: 'assets/emailicon.glb',      pos: [-0.450, -0.44, 0.028], scale: 0.1 },
         { file: 'assets/phoneicon.glb',      pos: [-0.150, -0.44, 0.028], scale: 0.1 },
@@ -115,8 +120,30 @@
           mesh.position.set(iconData[i].pos[0], iconData[i].pos[1], iconData[i].pos[2]);
           mesh.rotation.set(Math.PI/2, 0, 0); // (rotX, rotZ, rotY) = (90deg X, 0, 0)
           anchor.group.add(mesh);
+          iconMeshes[i] = mesh;
         });
       }
+
+      // Add raycasting for clickable icons
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      renderer.domElement.addEventListener('pointerdown', (event) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        // Flatten all icon meshes into a single array of clickable objects
+        const clickable = iconMeshes.filter(Boolean);
+        const intersects = raycaster.intersectObjects(clickable, true);
+        if (intersects.length > 0) {
+          for (let i = 0; i < iconMeshes.length; i++) {
+            if (intersects[0].object === iconMeshes[i] || (iconMeshes[i] && iconMeshes[i].children.includes(intersects[0].object))) {
+              window.open(iconLinks[i], '_blank');
+              break;
+            }
+          }
+        }
+      });
 
       // 7.5) LIGHTNING VIDEO PLANE
       {
